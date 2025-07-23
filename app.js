@@ -53,10 +53,10 @@ function showMainContent() {
     hideLoading();
     hideErrorMessage();
     loginScreen.style.display = "none";
-    mainContent.style.display = "block"; // Changed to block
+    mainContent.style.display = "block";
     logoutBtn.style.display = "block";
     viewToggler.style.display = "block";
-    tableResultContainer.style.display = "flex"; // Make table container visible
+    tableResultContainer.style.display = "flex"; // Default to showing table with playground
     initializeGraphQLPlayground();
 }
 
@@ -146,6 +146,7 @@ async function initializeVoyager() {
 playgroundBtn.addEventListener("click", () => {
     playgroundContainer.style.display = "block";
     voyagerContainer.style.display = "none";
+    tableResultContainer.style.display = "flex"; // Show table view
     playgroundBtn.classList.add("active");
     voyagerBtn.classList.remove("active");
 });
@@ -153,6 +154,7 @@ playgroundBtn.addEventListener("click", () => {
 voyagerBtn.addEventListener("click", () => {
     playgroundContainer.style.display = "none";
     voyagerContainer.style.display = "block";
+    tableResultContainer.style.display = "flex"; // Show table view
     voyagerBtn.classList.add("active");
     playgroundBtn.classList.remove("active");
     initializeVoyager();

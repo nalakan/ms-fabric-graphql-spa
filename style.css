@@ -48,6 +48,7 @@ body {
     flex-direction: column;
     border-top: 2px solid #dee2e6;
     background-color: #f8f9fa;
+    color: #212529; /* Dark text */
 }
 
 .table-header {
@@ -57,17 +58,20 @@ body {
     padding: 10px 15px;
     background-color: #e9ecef;
     flex-shrink: 0;
+    border-bottom: 1px solid #dee2e6;
 }
 
 .table-header h2 {
     margin: 0;
     font-size: 1.2rem;
+    color: #212529;
 }
 
 #table-container {
     padding: 15px;
     overflow: auto;
     flex-grow: 1;
+    background-color: #fff; /* Pure white background for the table area */
 }
 
 /* --- Generic Styles --- */
@@ -126,14 +130,14 @@ body {
 }
 
 #table-container th, #table-container td {
-    border: 1px solid #ddd;
+    border: 1px solid #dee2e6;
     padding: 8px;
     text-align: left;
     vertical-align: top;
 }
 
 #table-container th {
-    background-color: #e9ecef;
+    background-color: #f8f9fa;
     font-weight: bold;
     position: sticky;
     top: 0;
@@ -144,4 +148,12 @@ body {
     word-break: break-all;
     margin: 0;
     font-size: 0.875em;
+    background-color: #e9ecef;
+    padding: 5px;
+    border-radius: 4px;
+    color: #d63384; /* Bootstrap pink for contrast */
+}
+
+#table-container p {
+    color: #212529;
 }
