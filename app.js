@@ -29,6 +29,7 @@ const viewToggler = document.getElementById("viewToggler");
 
 const playgroundContainer = document.getElementById("graphql-playground");
 const voyagerContainer = document.getElementById("voyager-container");
+const tableResultContainer = document.getElementById('table-result-container');
 
 const GRAPHQL_ENDPOINT = 'https://bb4b4fcd2a8943f0b63391db3f3c4f9e.zbb.graphql.fabric.microsoft.com/v1/workspaces/bb4b4fcd-2a89-43f0-b633-91db3f3c4f9e/graphqlapis/69ea77b8-daf1-45b5-9200-69e4826a1a5a/graphql';
 
@@ -89,7 +90,7 @@ async function getAccessToken() {
         console.error("Silent token acquisition failed, acquiring token interactively:", error);
         showErrorMessage("Authentication failed. Please try logging in again.");
         msalInstance.loginRedirect(loginRequest);
-        return null; // Will redirect, so no token immediately
+        return null;
     }
 }
 
@@ -115,8 +116,6 @@ async function initializeGraphQLPlayground() {
             'editor.reuseHeaders': true,
             'editor.fontFamily': `'Source Code Pro', 'Consolas', 'Inconsolata', 'Droid Sans Mono', 'Monaco', monospace`,
             'editor.fontSize': 14,
-            'tracing.hideTracingByDefault': true,
-            'queryPlan.hideQueryPlanByDefault': true,
         },
         headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -154,7 +153,6 @@ logoutBtn.addEventListener("click", () => {
     });
 });
 
-// Handle redirect callback
 msalInstance.handleRedirectPromise().then(response => {
     if (response && response.accessToken) {
         showMainContent();
@@ -173,26 +171,7 @@ msalInstance.handleRedirectPromise().then(response => {
     showLoginScreen();
 });
 
-// Initial check on page load
-// This will trigger the MSAL redirect handler or show login screen
 showLoading();
-msalInstance.handleRedirectPromise().then(response => {
-    if (response && response.accessToken) {
-        showMainContent();
-    } else {
-        const accounts = msalInstance.getAllAccounts();
-        if (accounts.length > 0) {
-            showMainContent();
-        } else {
-            showLoginScreen();
-        }
-    }
-}).catch(error => {
-    hideLoading();
-    console.error(error);
-    showErrorMessage("An error occurred during initial load. Please try logging in.");
-    showLoginScreen();
-});
 
 async function introspectionProvider(query) {
     const accessToken = await getAccessToken();
@@ -215,7 +194,7 @@ async function introspectionProvider(query) {
 async function initializeVoyager() {
     try {
         const provider = await introspectionProvider;
-        GraphQLVoyager.init(document.getElementById('voyager-container'), {
+        GraphQLVoyager.init(voyagerContainer, {
             introspection: provider,
             displayOptions: {
                 rootType: "Query",
@@ -225,7 +204,7 @@ async function initializeVoyager() {
         });
     } catch (error) {
         console.error("Failed to initialize Voyager:", error);
-        showErrorMessage("Could not initialize the Voyager visualization. Please check the console for details.");
+        showErrorMessage("Could not initialize the Voyager visualization.");
     }
 }
 
@@ -241,51 +220,57 @@ voyagerBtn.addEventListener("click", () => {
     voyagerContainer.style.display = "block";
     voyagerBtn.classList.add("active");
     playgroundBtn.classList.remove("active");
-    initializeVoyager(); // Re-initialize in case the schema is updated
+    initializeVoyager();
 });
 
 // --- Tabular Result Logic ---
 
-function findFirstArray(obj) {
-    if (!obj || typeof obj !== 'object') {
-        return null;
-    }
-    if (Array.isArray(obj)) {
-        return obj;
-    }
-    for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            const result = findFirstArray(obj[key]);
-            if (result) {
-                return result;
+function findDataArray(obj) {
+    let result = null;
+    let maxDepth = -1;
+
+    function recurse(currentObj, depth) {
+        if (!currentObj || typeof currentObj !== 'object') {
+            return;
+        }
+
+        if (Array.isArray(currentObj)) {
+            if (depth > maxDepth) {
+                maxDepth = depth;
+                result = currentObj;
+            }
+            return;
+        }
+
+        for (const key in currentObj) {
+            if (currentObj.hasOwnProperty(key)) {
+                recurse(currentObj[key], depth + 1);
             }
         }
     }
-    return null;
+
+    recurse(obj, 0);
+    return result;
 }
 
 function createTable(data) {
-    const tableResultContainer = document.getElementById('table-result-container');
     const tableContainer = document.getElementById('table-container');
     if (!tableContainer || !tableResultContainer) return;
 
-    tableContainer.innerHTML = ''; // Clear previous table
+    tableContainer.innerHTML = '';
+    const dataArray = findDataArray(data);
 
-    const dataArray = findFirstArray(data);
-
-    if (!dataArray || dataArray.length === 0) {
-        tableContainer.textContent = 'No data to display in table.';
-        tableResultContainer.style.display = 'none'; // Hide container if no data
+    if (!dataArray || dataArray.length === 0 || typeof dataArray[0] !== 'object') {
+        playgroundContainer.style.height = '100%';
+        tableResultContainer.classList.remove('visible');
         return;
     }
 
     const table = document.createElement('table');
     table.className = 'table table-bordered table-striped';
-
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     
-    // Create headers from the keys of the first object
     const headers = Object.keys(dataArray[0]);
     headers.forEach(headerText => {
         const th = document.createElement('th');
@@ -302,7 +287,9 @@ function createTable(data) {
             const cell = document.createElement('td');
             const cellValue = rowData[header];
             if (typeof cellValue === 'object' && cellValue !== null) {
-                cell.textContent = JSON.stringify(cellValue, null, 2);
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(cellValue, null, 2);
+                cell.appendChild(pre);
             } else {
                 cell.textContent = cellValue;
             }
@@ -311,11 +298,11 @@ function createTable(data) {
         tbody.appendChild(row);
     });
     table.appendChild(tbody);
-
     tableContainer.appendChild(table);
-    tableResultContainer.style.display = 'block'; // Show container with new table
-}
 
+    playgroundContainer.style.height = '60%';
+    tableResultContainer.classList.add('visible');
+}
 
 // --- Fetch Interceptor ---
 const originalFetch = window.fetch;
@@ -326,12 +313,17 @@ window.fetch = function(...args) {
     if (url === GRAPHQL_ENDPOINT) {
         promise.then(response => {
             if (response.ok) {
-                // Clone the response to allow both the playground and our code to read it
                 response.clone().json().then(data => {
+                    console.log("GraphQL response intercepted:", data);
                     createTable(data);
                 }).catch(err => {
                     console.error('Error parsing JSON for table:', err);
+                    playgroundContainer.style.height = '100%';
+                    tableResultContainer.classList.remove('visible');
                 });
+            } else {
+                 playgroundContainer.style.height = '100%';
+                 tableResultContainer.classList.remove('visible');
             }
         });
     }

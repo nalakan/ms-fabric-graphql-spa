@@ -26,47 +26,55 @@ body {
 
 /* Adjust main content height to account for navbar and potential error message */
 #mainContent {
-    height: calc(100vh - 56px); /* Navbar height is approx 56px */
-    margin-top: 0 !important; /* Remove default mt-3 from container */
+    height: calc(100vh - 56px);
+    margin-top: 0 !important;
+    padding: 0 !important;
 }
 
-.alert {
-    margin-bottom: 0;
-    border-radius: 0;
+.content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
 }
 
-.navbar .btn-group {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+.playground-view, .voyager-view {
+    flex-grow: 1; /* Takes up all available space initially */
+    width: 100%;
+    height: 100%;
+    transition: height 0.3s ease-in-out;
 }
 
-.navbar .btn-group .btn.active {
-    background-color: #0d6efd; /* Bootstrap primary blue */
-    border-color: #0d6efd;
-    color: white;
-}
-
-.navbar .btn-group .btn:not(.active) {
-    background-color: #6c757d; /* Bootstrap secondary gray */
-    border-color: #6c757d;
-    color: white;
+.voyager-view {
+    height: 100%;
 }
 
 #table-result-container {
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-top: 1px solid #dee2e6;
-    max-height: 40vh; /* Limit height and make it scrollable */
+    flex-shrink: 0;
+    height: 0; /* Initially hidden */
     overflow: auto;
-    display: none; /* Hide by default */
+    border-top: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+    transition: height 0.3s ease-in-out;
+}
+
+#table-result-container.visible {
+    height: 40%; /* Visible height */
 }
 
 #table-result-container h2 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.5rem;
+    padding: 10px 15px;
+    margin: 0;
+    font-size: 1.2rem;
     color: #343a40;
+    background-color: #e9ecef;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+#table-container {
+    padding: 15px;
 }
 
 #table-container table {
@@ -84,8 +92,6 @@ body {
 #table-container th {
     background-color: #e9ecef;
     font-weight: bold;
-    position: sticky;
-    top: 0;
 }
 
 #table-container pre {
