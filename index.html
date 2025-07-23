@@ -71,6 +71,16 @@
         </div>
     </div>
 
-    <script src="app.js?v=2.0"></script>
+    <script src="app.js?v=2.1"></script>
+    <script>
+      (function() {
+        const currentVersion = "2.1";
+        const storedVersion = sessionStorage.getItem('appVersion');
+        if (storedVersion !== currentVersion) {
+          sessionStorage.setItem('appVersion', currentVersion);
+          window.location.reload(true); // Force a hard reload
+        }
+      })();
+    </script>
 </body>
 </html>
