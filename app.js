@@ -1,9 +1,8 @@
-// This is a test comment to trigger GitHub Pages build
 const msalConfig = {
     auth: {
         clientId: "4c072a54-b964-4f2e-a8cf-d571df4c58aa",
         authority: "https://login.microsoftonline.com/common",
-        redirectUri: "https://nalakan.github.io/-fabric-graphql-spa/"
+        redirectUri: "https://graphql.bidiaries.com/" // Updated for custom domain
     }
 };
 
@@ -21,18 +20,14 @@ const loginScreen = document.getElementById("loginScreen");
 const mainContent = document.getElementById("mainContent");
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
-const runQueryBtn = document.getElementById("runQueryBtn");
-const queryInput = document.getElementById("queryInput");
-const output = document.getElementById("output");
 
-function setOutput(message) {
-    output.textContent = message;
-}
+const GRAPHQL_ENDPOINT = 'https://bb4b4fcd2a8943f0b63391db3f3c4f9e.zbb.graphql.fabric.microsoft.com/v1/workspaces/bb4b4fcd-2a89-43f0-b633-91db3f3c4f9e/graphqlapis/69ea77b8-daf1-45b5-9200-69e4826a1a5a/graphql';
 
 function showMainContent() {
     loginScreen.style.display = "none";
     mainContent.style.display = "block";
     logoutBtn.style.display = "block";
+    initializeGraphQLPlayground();
 }
 
 function showLoginScreen() {
@@ -41,41 +36,70 @@ function showLoginScreen() {
     logoutBtn.style.display = "none";
 }
 
-async function callApi(accessToken, query) {
-    setOutput("Loading data...");
-    const endpoint = 'https://bb4b4fcd2a8943f0b63391db3f3c4f9e.zbb.graphql.fabric.microsoft.com/v1/workspaces/bb4b4fcd-2a89-43f0-b633-91db3f3c4f9e/graphqlapis/69ea77b8-daf1-45b5-9200-69e4826a1a5a/graphql';
-
+async function getAccessToken() {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length === 0) {
+        return null;
+    }
     try {
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ query: query, variables: {} })
+        const tokenResponse = await msalInstance.acquireTokenSilent({
+            ...loginRequest,
+            account: accounts[0]
         });
-
-        const data = await response.json();
-        setOutput(JSON.stringify(data, null, 4));
+        return tokenResponse.accessToken;
     } catch (error) {
-        setOutput("Error loading data: " + error);
+        console.error("Silent token acquisition failed, acquiring token interactively:", error);
+        msalInstance.loginRedirect(loginRequest);
+        return null; // Will redirect, so no token immediately
     }
 }
 
-async function runQuery() {
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-        try {
-            const tokenResponse = await msalInstance.acquireTokenSilent({
-                ...loginRequest,
-                account: accounts[0]
-            });
-            const query = queryInput.value;
-            await callApi(tokenResponse.accessToken, query);
-        } catch (error) {
-            msalInstance.loginRedirect(loginRequest);
-        }
+async function initializeGraphQLPlayground() {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+        console.error("No access token available for GraphQL Playground.");
+        return;
     }
+
+    // Ensure the GraphQLPlayground object is available
+    if (typeof GraphQLPlayground === 'undefined' || !GraphQLPlayground.init) {
+        console.error("GraphQLPlayground not loaded. Retrying...");
+        // Simple retry mechanism, or more robust loading check
+        setTimeout(initializeGraphQLPlayground, 500);
+        return;
+    }
+
+    GraphQLPlayground.init(document.getElementById('graphql-playground'), {
+        endpoint: GRAPHQL_ENDPOINT,
+        settings: {
+            'request.credentials': 'omit',
+            'editor.theme': 'dark',
+            'editor.reuseHeaders': true,
+            'editor.fontFamily': `'Source Code Pro', 'Consolas', 'Inconsolata', 'Droid Sans Mono', 'Monaco', monospace`,
+            'editor.fontSize': 14,
+            'tracing.hideTracingByDefault': true,
+            'queryPlan.hideQueryPlanByDefault': true,
+        },
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+        },
+        tab: {
+            endpoint: GRAPHQL_ENDPOINT,
+            query: `query {
+  trips(first: 5) {
+    items {
+      PaymentType
+      medallion(first: 1) {
+        items {
+          MedallionCode
+        }
+      }
+    }
+  }
+}`,
+            variables: `{}`,
+        },
+    });
 }
 
 loginBtn.addEventListener("click", () => {
@@ -84,11 +108,9 @@ loginBtn.addEventListener("click", () => {
 
 logoutBtn.addEventListener("click", () => {
     msalInstance.logoutRedirect({
-        postLogoutRedirectUri: "http://localhost:5500"
+        postLogoutRedirectUri: msalConfig.auth.redirectUri
     });
 });
-
-runQueryBtn.addEventListener("click", runQuery);
 
 // Handle redirect callback
 msalInstance.handleRedirectPromise().then(response => {
