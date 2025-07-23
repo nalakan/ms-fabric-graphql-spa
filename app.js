@@ -16,30 +16,28 @@ const loginRequest = {
     ]
 };
 
+// DOM Elements
 const loginScreen = document.getElementById("loginScreen");
 const mainContent = document.getElementById("mainContent");
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const loadingOverlay = document.getElementById("loadingOverlay");
 const errorMessageDiv = document.getElementById("errorMessage");
-
 const playgroundBtn = document.getElementById("playgroundBtn");
 const voyagerBtn = document.getElementById("voyagerBtn");
 const viewToggler = document.getElementById("viewToggler");
-
 const playgroundContainer = document.getElementById("graphql-playground");
 const voyagerContainer = document.getElementById("voyager-container");
 const tableResultContainer = document.getElementById('table-result-container');
+const generateTableBtn = document.getElementById('generate-table-btn');
+const tableContainer = document.getElementById('table-container');
 
 const GRAPHQL_ENDPOINT = 'https://bb4b4fcd2a8943f0b63391db3f3c4f9e.zbb.graphql.fabric.microsoft.com/v1/workspaces/bb4b4fcd-2a89-43f0-b633-91db3f3c4f9e/graphqlapis/69ea77b8-daf1-45b5-9200-69e4826a1a5a/graphql';
 
-function showLoading() {
-    loadingOverlay.classList.add("show");
-}
+// --- Core UI Functions ---
 
-function hideLoading() {
-    loadingOverlay.classList.remove("show");
-}
+function showLoading() { loadingOverlay.classList.add("show"); }
+function hideLoading() { loadingOverlay.classList.remove("show"); }
 
 function showErrorMessage(message) {
     errorMessageDiv.textContent = message;
@@ -55,7 +53,7 @@ function showMainContent() {
     hideLoading();
     hideErrorMessage();
     loginScreen.style.display = "none";
-    mainContent.style.display = "block";
+    mainContent.style.display = "flex"; // Use flex for the main layout
     logoutBtn.style.display = "block";
     viewToggler.style.display = "block";
     initializeGraphQLPlayground();
@@ -70,73 +68,19 @@ function showLoginScreen() {
     viewToggler.style.display = "none";
 }
 
+// --- MSAL Authentication ---
+
 async function getAccessToken() {
-    hideErrorMessage();
-    showLoading();
     const accounts = msalInstance.getAllAccounts();
-    if (accounts.length === 0) {
-        hideLoading();
-        return null;
-    }
+    if (accounts.length === 0) return null;
     try {
-        const tokenResponse = await msalInstance.acquireTokenSilent({
-            ...loginRequest,
-            account: accounts[0]
-        });
-        hideLoading();
+        const tokenResponse = await msalInstance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
         return tokenResponse.accessToken;
     } catch (error) {
-        hideLoading();
         console.error("Silent token acquisition failed, acquiring token interactively:", error);
-        showErrorMessage("Authentication failed. Please try logging in again.");
         msalInstance.loginRedirect(loginRequest);
         return null;
     }
-}
-
-async function initializeGraphQLPlayground() {
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-        console.error("No access token available for GraphQL Playground.");
-        showErrorMessage("Could not get access token for GraphQL API. Please log in.");
-        return;
-    }
-
-    if (typeof GraphQLPlayground === 'undefined' || !GraphQLPlayground.init) {
-        console.error("GraphQLPlayground not loaded. Retrying...");
-        setTimeout(initializeGraphQLPlayground, 500);
-        return;
-    }
-
-    GraphQLPlayground.init(document.getElementById('graphql-playground'), {
-        endpoint: GRAPHQL_ENDPOINT,
-        settings: {
-            'request.credentials': 'omit',
-            'editor.theme': 'dark',
-            'editor.reuseHeaders': true,
-            'editor.fontFamily': `'Source Code Pro', 'Consolas', 'Inconsolata', 'Droid Sans Mono', 'Monaco', monospace`,
-            'editor.fontSize': 14,
-        },
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-        },
-        tab: {
-            endpoint: GRAPHQL_ENDPOINT,
-            query: `query {
-  trips(first: 5) {
-    items {
-      PaymentType
-      medallion(first: 1) {
-        items {
-          MedallionCode
-        }
-      }
-    }
-  }
-}`,
-            variables: `{}`,
-        },
-    });
 }
 
 loginBtn.addEventListener("click", () => {
@@ -146,65 +90,55 @@ loginBtn.addEventListener("click", () => {
 });
 
 logoutBtn.addEventListener("click", () => {
-    hideErrorMessage();
-    showLoading();
-    msalInstance.logoutRedirect({
-        postLogoutRedirectUri: msalConfig.auth.redirectUri
-    });
+    msalInstance.logoutRedirect({ postLogoutRedirectUri: msalConfig.auth.redirectUri });
 });
 
 msalInstance.handleRedirectPromise().then(response => {
     if (response && response.accessToken) {
         showMainContent();
+    } else if (msalInstance.getAllAccounts().length > 0) {
+        showMainContent();
     } else {
-        const accounts = msalInstance.getAllAccounts();
-        if (accounts.length > 0) {
-            showMainContent();
-        } else {
-            showLoginScreen();
-        }
+        showLoginScreen();
     }
 }).catch(error => {
-    hideLoading();
     console.error(error);
     showErrorMessage("An error occurred during authentication. Please try again.");
     showLoginScreen();
 });
 
-showLoading();
+// --- GraphQL Tools Initialization ---
+
+async function initializeGraphQLPlayground() {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+        showErrorMessage("Could not get access token. Please log in.");
+        return;
+    }
+    GraphQLPlayground.init(playgroundContainer, {
+        endpoint: GRAPHQL_ENDPOINT,
+        settings: { 'editor.theme': 'dark', 'editor.reuseHeaders': true },
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+}
 
 async function introspectionProvider(query) {
     const accessToken = await getAccessToken();
-    if (!accessToken) {
-        throw new Error("No access token available for introspection.");
-    }
-    return fetch(GRAPHQL_ENDPOINT, {
+    if (!accessToken) throw new Error("No access token for introspection.");
+    const response = await fetch(GRAPHQL_ENDPOINT, {
         method: 'post',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-            query: query
-        }),
-    }).then(response => response.json());
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        body: JSON.stringify({ query: query }),
+    });
+    return response.json();
 }
 
 async function initializeVoyager() {
     try {
-        const provider = await introspectionProvider;
-        GraphQLVoyager.init(voyagerContainer, {
-            introspection: provider,
-            displayOptions: {
-                rootType: "Query",
-                sortByAlphabet: true,
-                showPanel: true,
-            }
-        });
+        GraphQLVoyager.init(voyagerContainer, { introspection: await introspectionProvider });
     } catch (error) {
         console.error("Failed to initialize Voyager:", error);
-        showErrorMessage("Could not initialize the Voyager visualization.");
+        showErrorMessage("Could not initialize Voyager.");
     }
 }
 
@@ -223,7 +157,7 @@ voyagerBtn.addEventListener("click", () => {
     initializeVoyager();
 });
 
-// --- Tabular Result Logic ---
+// --- Tabular Result Logic (Clipboard Method) ---
 
 function findDataArray(obj) {
     const queue = [obj];
@@ -232,88 +166,82 @@ function findDataArray(obj) {
         if (Array.isArray(current) && current.length > 0 && typeof current[0] === 'object' && current[0] !== null) {
             return current;
         }
-        if (current && typeof current === 'object' && !Array.isArray(current)) {
-            for (const key in current) {
-                if (current.hasOwnProperty(key)) {
-                    queue.push(current[key]);
-                }
-            }
+        if (current && typeof current === 'object') {
+            Object.values(current).forEach(value => queue.push(value));
         }
     }
     return null;
 }
 
-function createTable(data) {
-    const tableContainer = document.getElementById('table-container');
-    if (!tableContainer || !tableResultContainer) return;
-
+function createTable(dataArray) {
     tableContainer.innerHTML = '';
-    const dataArray = findDataArray(data);
-
-    if (!dataArray) {
-        tableContainer.innerHTML = '<p style="padding: 15px; color: #6c757d;">Could not automatically find tabular data in the GraphQL response. You can still see the raw JSON in the playground above.</p>';
-    } else {
-        const table = document.createElement('table');
-        table.className = 'table table-bordered table-striped';
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        
-        const headers = Object.keys(dataArray[0]);
-        headers.forEach(headerText => {
-            const th = document.createElement('th');
-            th.textContent = headerText;
-            headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        const tbody = document.createElement('tbody');
-        dataArray.forEach(rowData => {
-            const row = document.createElement('tr');
-            headers.forEach(header => {
-                const cell = document.createElement('td');
-                const cellValue = rowData[header];
-                if (typeof cellValue === 'object' && cellValue !== null) {
-                    const pre = document.createElement('pre');
-                    pre.textContent = JSON.stringify(cellValue, null, 2);
-                    cell.appendChild(pre);
-                } else {
-                    cell.textContent = cellValue;
-                }
-                row.appendChild(cell);
-            });
-            tbody.appendChild(row);
-        });
-        table.appendChild(tbody);
-        tableContainer.appendChild(table);
-    }
+    const table = document.createElement('table');
+    table.className = 'table table-bordered table-striped';
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
     
-    playgroundContainer.style.height = '60%';
-    tableResultContainer.classList.add('visible');
+    const headers = Object.keys(dataArray[0]);
+    headers.forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    dataArray.forEach(rowData => {
+        const row = document.createElement('tr');
+        headers.forEach(header => {
+            const cell = document.createElement('td');
+            const cellValue = rowData[header];
+            if (typeof cellValue === 'object' && cellValue !== null) {
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(cellValue, null, 2);
+                cell.appendChild(pre);
+            } else {
+                cell.textContent = cellValue;
+            }
+            row.appendChild(cell);
+        });
+        tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    tableContainer.appendChild(table);
 }
 
-// --- Fetch Interceptor ---
-const originalFetch = window.fetch;
-window.fetch = function(...args) {
-    const [url] = args;
-    const promise = originalFetch.apply(this, args);
+generateTableBtn.addEventListener('click', async () => {
+    try {
+        const clipboardText = await navigator.clipboard.readText();
+        if (!clipboardText) {
+            tableContainer.innerHTML = '<p>Clipboard is empty.</p>';
+            tableResultContainer.style.display = 'flex';
+            return;
+        }
 
-    if (url === GRAPHQL_ENDPOINT) {
-        promise.then(response => {
-            if (response.ok) {
-                response.clone().json().then(data => {
-                    createTable(data);
-                }).catch(err => {
-                    console.error('Error parsing JSON for table:', err);
-                    playgroundContainer.style.height = '100%';
-                    tableResultContainer.classList.remove('visible');
-                });
-            } else {
-                 playgroundContainer.style.height = '100%';
-                 tableResultContainer.classList.remove('visible');
-            }
-        });
+        const jsonData = JSON.parse(clipboardText);
+        const dataArray = findDataArray(jsonData);
+
+        if (dataArray) {
+            createTable(dataArray);
+        } else {
+            tableContainer.innerHTML = '<p>Could not find an array of objects to display in the clipboard text.</p>';
+        }
+        tableResultContainer.style.display = 'flex';
+
+    } catch (err) {
+        console.error('Failed to generate table:', err);
+        let errorMessage = 'An error occurred.';
+        if (err.name === 'NotAllowedError') {
+            errorMessage = 'Permission to read clipboard was denied. Please allow access in your browser.';
+        } else if (err instanceof SyntaxError) {
+            errorMessage = 'The text on the clipboard is not valid JSON.';
+        }
+        tableContainer.innerHTML = `<p class="text-danger">${errorMessage}</p>`;
+        tableResultContainer.style.display = 'flex';
     }
+});
 
-    return promise;
-};
+// Initial Load
+showLoading();
+msalInstance.handleRedirectPromise().catch(err => console.error(err));
