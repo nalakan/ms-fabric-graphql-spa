@@ -265,8 +265,9 @@ function findFirstArray(obj) {
 }
 
 function createTable(data) {
+    const tableResultContainer = document.getElementById('table-result-container');
     const tableContainer = document.getElementById('table-container');
-    if (!tableContainer) return;
+    if (!tableContainer || !tableResultContainer) return;
 
     tableContainer.innerHTML = ''; // Clear previous table
 
@@ -274,6 +275,7 @@ function createTable(data) {
 
     if (!dataArray || dataArray.length === 0) {
         tableContainer.textContent = 'No data to display in table.';
+        tableResultContainer.style.display = 'none'; // Hide container if no data
         return;
     }
 
@@ -311,6 +313,7 @@ function createTable(data) {
     table.appendChild(tbody);
 
     tableContainer.appendChild(table);
+    tableResultContainer.style.display = 'block'; // Show container with new table
 }
 
 

@@ -59,6 +59,7 @@ body {
     border-top: 1px solid #dee2e6;
     max-height: 40vh; /* Limit height and make it scrollable */
     overflow: auto;
+    display: none; /* Hide by default */
 }
 
 #table-result-container h2 {
