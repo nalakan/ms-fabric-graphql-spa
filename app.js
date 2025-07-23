@@ -1,3 +1,4 @@
+// This is a test comment to trigger GitHub Pages build
 const msalConfig = {
     auth: {
         clientId: "4c072a54-b964-4f2e-a8cf-d571df4c58aa",
