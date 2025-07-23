@@ -226,31 +226,21 @@ voyagerBtn.addEventListener("click", () => {
 // --- Tabular Result Logic ---
 
 function findDataArray(obj) {
-    let result = null;
-    let maxDepth = -1;
-
-    function recurse(currentObj, depth) {
-        if (!currentObj || typeof currentObj !== 'object') {
-            return;
+    const queue = [obj];
+    while (queue.length > 0) {
+        const current = queue.shift();
+        if (Array.isArray(current) && current.length > 0 && typeof current[0] === 'object' && current[0] !== null) {
+            return current;
         }
-
-        if (Array.isArray(currentObj)) {
-            if (depth > maxDepth) {
-                maxDepth = depth;
-                result = currentObj;
-            }
-            return;
-        }
-
-        for (const key in currentObj) {
-            if (currentObj.hasOwnProperty(key)) {
-                recurse(currentObj[key], depth + 1);
+        if (current && typeof current === 'object' && !Array.isArray(current)) {
+            for (const key in current) {
+                if (current.hasOwnProperty(key)) {
+                    queue.push(current[key]);
+                }
             }
         }
     }
-
-    recurse(obj, 0);
-    return result;
+    return null;
 }
 
 function createTable(data) {
@@ -260,46 +250,44 @@ function createTable(data) {
     tableContainer.innerHTML = '';
     const dataArray = findDataArray(data);
 
-    if (!dataArray || dataArray.length === 0 || typeof dataArray[0] !== 'object') {
-        playgroundContainer.style.height = '100%';
-        tableResultContainer.classList.remove('visible');
-        return;
-    }
-
-    const table = document.createElement('table');
-    table.className = 'table table-bordered table-striped';
-    const thead = document.createElement('thead');
-    const headerRow = document.createElement('tr');
-    
-    const headers = Object.keys(dataArray[0]);
-    headers.forEach(headerText => {
-        const th = document.createElement('th');
-        th.textContent = headerText;
-        headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    dataArray.forEach(rowData => {
-        const row = document.createElement('tr');
-        headers.forEach(header => {
-            const cell = document.createElement('td');
-            const cellValue = rowData[header];
-            if (typeof cellValue === 'object' && cellValue !== null) {
-                const pre = document.createElement('pre');
-                pre.textContent = JSON.stringify(cellValue, null, 2);
-                cell.appendChild(pre);
-            } else {
-                cell.textContent = cellValue;
-            }
-            row.appendChild(cell);
+    if (!dataArray) {
+        tableContainer.innerHTML = '<p style="padding: 15px; color: #6c757d;">Could not automatically find tabular data in the GraphQL response. You can still see the raw JSON in the playground above.</p>';
+    } else {
+        const table = document.createElement('table');
+        table.className = 'table table-bordered table-striped';
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        const headers = Object.keys(dataArray[0]);
+        headers.forEach(headerText => {
+            const th = document.createElement('th');
+            th.textContent = headerText;
+            headerRow.appendChild(th);
         });
-        tbody.appendChild(row);
-    });
-    table.appendChild(tbody);
-    tableContainer.appendChild(table);
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
 
+        const tbody = document.createElement('tbody');
+        dataArray.forEach(rowData => {
+            const row = document.createElement('tr');
+            headers.forEach(header => {
+                const cell = document.createElement('td');
+                const cellValue = rowData[header];
+                if (typeof cellValue === 'object' && cellValue !== null) {
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify(cellValue, null, 2);
+                    cell.appendChild(pre);
+                } else {
+                    cell.textContent = cellValue;
+                }
+                row.appendChild(cell);
+            });
+            tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+        tableContainer.appendChild(table);
+    }
+    
     playgroundContainer.style.height = '60%';
     tableResultContainer.classList.add('visible');
 }
@@ -314,7 +302,6 @@ window.fetch = function(...args) {
         promise.then(response => {
             if (response.ok) {
                 response.clone().json().then(data => {
-                    console.log("GraphQL response intercepted:", data);
                     createTable(data);
                 }).catch(err => {
                     console.error('Error parsing JSON for table:', err);
