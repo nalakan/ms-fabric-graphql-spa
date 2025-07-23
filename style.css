@@ -52,3 +52,44 @@ body {
     border-color: #6c757d;
     color: white;
 }
+
+#table-result-container {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    max-height: 40vh; /* Limit height and make it scrollable */
+    overflow: auto;
+}
+
+#table-result-container h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    color: #343a40;
+}
+
+#table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#table-container th, #table-container td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+#table-container th {
+    background-color: #e9ecef;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+}
+
+#table-container pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
+    font-size: 0.875em;
+}

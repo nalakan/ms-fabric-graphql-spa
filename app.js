@@ -243,3 +243,95 @@ voyagerBtn.addEventListener("click", () => {
     playgroundBtn.classList.remove("active");
     initializeVoyager(); // Re-initialize in case the schema is updated
 });
+
+// --- Tabular Result Logic ---
+
+function findFirstArray(obj) {
+    if (!obj || typeof obj !== 'object') {
+        return null;
+    }
+    if (Array.isArray(obj)) {
+        return obj;
+    }
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            const result = findFirstArray(obj[key]);
+            if (result) {
+                return result;
+            }
+        }
+    }
+    return null;
+}
+
+function createTable(data) {
+    const tableContainer = document.getElementById('table-container');
+    if (!tableContainer) return;
+
+    tableContainer.innerHTML = ''; // Clear previous table
+
+    const dataArray = findFirstArray(data);
+
+    if (!dataArray || dataArray.length === 0) {
+        tableContainer.textContent = 'No data to display in table.';
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'table table-bordered table-striped';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    // Create headers from the keys of the first object
+    const headers = Object.keys(dataArray[0]);
+    headers.forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    dataArray.forEach(rowData => {
+        const row = document.createElement('tr');
+        headers.forEach(header => {
+            const cell = document.createElement('td');
+            const cellValue = rowData[header];
+            if (typeof cellValue === 'object' && cellValue !== null) {
+                cell.textContent = JSON.stringify(cellValue, null, 2);
+            } else {
+                cell.textContent = cellValue;
+            }
+            row.appendChild(cell);
+        });
+        tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+
+    tableContainer.appendChild(table);
+}
+
+
+// --- Fetch Interceptor ---
+const originalFetch = window.fetch;
+window.fetch = function(...args) {
+    const [url] = args;
+    const promise = originalFetch.apply(this, args);
+
+    if (url === GRAPHQL_ENDPOINT) {
+        promise.then(response => {
+            if (response.ok) {
+                // Clone the response to allow both the playground and our code to read it
+                response.clone().json().then(data => {
+                    createTable(data);
+                }).catch(err => {
+                    console.error('Error parsing JSON for table:', err);
+                });
+            }
+        });
+    }
+
+    return promise;
+};
