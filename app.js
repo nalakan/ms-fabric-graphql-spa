@@ -3,7 +3,7 @@ const msalConfig = {
     auth: {
         clientId: "4c072a54-b964-4f2e-a8cf-d571df4c58aa",
         authority: "https://login.microsoftonline.com/common",
-        redirectUri: "http://localhost:5500"
+        redirectUri: "https://nalakan.github.io/-fabric-graphql-spa/"
     }
 };
 
