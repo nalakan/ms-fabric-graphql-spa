@@ -23,6 +23,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="#">Fabric GraphQL SPA</a>
             <div class="d-flex">
+                <button id="themeToggleBtn" class="btn btn-secondary me-2" style="display: none;">Toggle Theme</button>
                 <button id="logoutBtn" class="btn btn-secondary" style="display: none;">Logout</button>
             </div>
         </div>
@@ -30,16 +31,19 @@
 
     <div id="errorMessage" class="alert alert-danger d-none" role="alert"></div>
 
-    <div id="loginScreen" class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h1 class="card-title">Fabric GraphQL API</h1>
-                        <p class="card-text">Please login to continue.</p>
-                        <button id="loginBtn" class="btn btn-primary">Login</button>
-                    </div>
+    <div id="loginScreen" class="login-screen-bg d-flex justify-content-center align-items-center">
+        <div class="login-card card text-center p-4 shadow-lg">
+            <div class="card-body">
+                <div class="login-logo mb-4">
+                    <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100" height="100" rx="20" fill="#6200EE"/>
+                        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" fill="white" font-weight="bold">F</text>
+                        <text x="70%" y="70%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" fill="white" font-weight="bold">GQL</text>
+                    </svg>
                 </div>
+                <h1 class="card-title mb-3">Fabric GraphQL API</h1>
+                <p class="card-text mb-4">Access your data with powerful GraphQL queries.</p>
+                <button id="loginBtn" class="btn btn-primary btn-lg">Login with Microsoft</button>
             </div>
         </div>
     </div>
