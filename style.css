@@ -34,3 +34,21 @@ body {
     margin-bottom: 0;
     border-radius: 0;
 }
+
+.navbar .btn-group {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.navbar .btn-group .btn.active {
+    background-color: #0d6efd; /* Bootstrap primary blue */
+    border-color: #0d6efd;
+    color: white;
+}
+
+.navbar .btn-group .btn:not(.active) {
+    background-color: #6c757d; /* Bootstrap secondary gray */
+    border-color: #6c757d;
+    color: white;
+}

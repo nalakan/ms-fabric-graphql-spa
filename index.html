@@ -11,6 +11,12 @@
     <link rel="shortcut icon" href="https://cdn.jsdelivr.net/npm/graphql-playground-react/build/favicon.png" />
     <!-- GraphQL Playground JS -->
     <script src="https://cdn.jsdelivr.net/npm/graphql-playground-react/build/static/js/middleware.js"></script>
+
+    <!-- GraphQL Voyager -->
+    <script src="https://cdn.jsdelivr.net/npm/react@16/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@16/umd/react-dom.production.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/graphql-voyager/dist/voyager.css" />
+    <script src="https://cdn.jsdelivr.net/npm/graphql-voyager/dist/voyager.min.js"></script>
 </head>
 <body>
     <div id="loadingOverlay" class="loading-overlay">
@@ -22,6 +28,10 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">Fabric GraphQL SPA</a>
+            <div id="viewToggler" class="btn-group" role="group" style="display: none;">
+                <button id="playgroundBtn" type="button" class="btn btn-primary active">Playground</button>
+                <button id="voyagerBtn" type="button" class="btn btn-primary">Voyager</button>
+            </div>
             <div class="d-flex">
                 <button id="logoutBtn" class="btn btn-secondary" style="display: none;">Logout</button>
             </div>
@@ -46,6 +56,7 @@
 
     <div id="mainContent" class="container-fluid mt-3" style="display: none; height: calc(100vh - 80px);">
         <div id="graphql-playground" style="height: 100%; width: 100%;"></div>
+        <div id="voyager-container" style="height: 100%; width: 100%; display: none;"></div>
     </div>
 
     <script src="app.js"></script>

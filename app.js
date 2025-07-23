@@ -23,6 +23,13 @@ const logoutBtn = document.getElementById("logoutBtn");
 const loadingOverlay = document.getElementById("loadingOverlay");
 const errorMessageDiv = document.getElementById("errorMessage");
 
+const playgroundBtn = document.getElementById("playgroundBtn");
+const voyagerBtn = document.getElementById("voyagerBtn");
+const viewToggler = document.getElementById("viewToggler");
+
+const playgroundContainer = document.getElementById("graphql-playground");
+const voyagerContainer = document.getElementById("voyager-container");
+
 const GRAPHQL_ENDPOINT = 'https://bb4b4fcd2a8943f0b63391db3f3c4f9e.zbb.graphql.fabric.microsoft.com/v1/workspaces/bb4b4fcd-2a89-43f0-b633-91db3f3c4f9e/graphqlapis/69ea77b8-daf1-45b5-9200-69e4826a1a5a/graphql';
 
 function showLoading() {
@@ -49,6 +56,7 @@ function showMainContent() {
     loginScreen.style.display = "none";
     mainContent.style.display = "block";
     logoutBtn.style.display = "block";
+    viewToggler.style.display = "block";
     initializeGraphQLPlayground();
 }
 
@@ -58,6 +66,7 @@ function showLoginScreen() {
     loginScreen.style.display = "block";
     mainContent.style.display = "none";
     logoutBtn.style.display = "none";
+    viewToggler.style.display = "none";
 }
 
 async function getAccessToken() {
@@ -183,4 +192,53 @@ msalInstance.handleRedirectPromise().then(response => {
     console.error(error);
     showErrorMessage("An error occurred during initial load. Please try logging in.");
     showLoginScreen();
+});
+
+async function introspectionProvider(query) {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+        throw new Error("No access token available for introspection.");
+    }
+    return fetch(GRAPHQL_ENDPOINT, {
+        method: 'post',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+            query: query
+        }),
+    }).then(response => response.json());
+}
+
+async function initializeVoyager() {
+    try {
+        const provider = await introspectionProvider;
+        GraphQLVoyager.init(document.getElementById('voyager-container'), {
+            introspection: provider,
+            displayOptions: {
+                rootType: "Query",
+                sortByAlphabet: true,
+            }
+        });
+    } catch (error) {
+        console.error("Failed to initialize Voyager:", error);
+        showErrorMessage("Could not initialize the Voyager visualization. Please check the console for details.");
+    }
+}
+
+playgroundBtn.addEventListener("click", () => {
+    playgroundContainer.style.display = "block";
+    voyagerContainer.style.display = "none";
+    playgroundBtn.classList.add("active");
+    voyagerBtn.classList.remove("active");
+});
+
+voyagerBtn.addEventListener("click", () => {
+    playgroundContainer.style.display = "none";
+    voyagerContainer.style.display = "block";
+    voyagerBtn.classList.add("active");
+    playgroundBtn.classList.remove("active");
+    initializeVoyager(); // Re-initialize in case the schema is updated
 });
