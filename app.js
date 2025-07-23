@@ -53,9 +53,10 @@ function showMainContent() {
     hideLoading();
     hideErrorMessage();
     loginScreen.style.display = "none";
-    mainContent.style.display = "flex"; // Use flex for the main layout
+    mainContent.style.display = "block"; // Changed to block
     logoutBtn.style.display = "block";
     viewToggler.style.display = "block";
+    tableResultContainer.style.display = "flex"; // Make table container visible
     initializeGraphQLPlayground();
 }
 

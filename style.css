@@ -25,16 +25,15 @@ body {
 }
 
 /* Adjust main content height to account for navbar and potential error message */
+/* Basic Layout */
 #mainContent {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 56px);
     width: 100%;
+    height: calc(100vh - 56px); /* Full height minus navbar */
 }
 
 .content-wrapper {
-    flex-grow: 1;
-    position: relative; /* Needed for playground to fill space */
+    height: 60%; /* Playground takes 60% of the height */
+    position: relative;
 }
 
 .playground-view, .voyager-view {
@@ -42,9 +41,10 @@ body {
     width: 100%;
 }
 
+/* Table container is now always visible with the main content */
 #table-result-container {
-    height: 40%;
-    display: none; /* Hidden by default */
+    height: 40%; /* Table area takes 40% */
+    display: flex;
     flex-direction: column;
     border-top: 2px solid #dee2e6;
     background-color: #f8f9fa;
@@ -68,6 +68,56 @@ body {
     padding: 15px;
     overflow: auto;
     flex-grow: 1;
+}
+
+/* --- Generic Styles --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050;
+    transition: opacity 0.3s ease-in-out;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.alert {
+    margin-bottom: 0;
+    border-radius: 0;
+}
+
+.navbar .btn-group {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.navbar .btn-group .btn.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.navbar .btn-group .btn:not(.active) {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
 }
 
 #table-container table {
