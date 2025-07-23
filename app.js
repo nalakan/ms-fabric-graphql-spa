@@ -20,7 +20,6 @@ const loginScreen = document.getElementById("loginScreen");
 const mainContent = document.getElementById("mainContent");
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
-const themeToggleBtn = document.getElementById("themeToggleBtn");
 const loadingOverlay = document.getElementById("loadingOverlay");
 const errorMessageDiv = document.getElementById("errorMessage");
 
@@ -50,17 +49,15 @@ function showMainContent() {
     loginScreen.style.display = "none";
     mainContent.style.display = "block";
     logoutBtn.style.display = "block";
-    themeToggleBtn.style.display = "block"; // Show theme toggle
     initializeGraphQLPlayground();
 }
 
 function showLoginScreen() {
     hideLoading();
     hideErrorMessage();
-    loginScreen.style.display = "flex"; // Use flex for centering
+    loginScreen.style.display = "block";
     mainContent.style.display = "none";
     logoutBtn.style.display = "none";
-    themeToggleBtn.style.display = "none"; // Hide theme toggle
 }
 
 async function getAccessToken() {
@@ -101,14 +98,11 @@ async function initializeGraphQLPlayground() {
         return;
     }
 
-    // Determine initial theme for Playground based on body class
-    const initialTheme = document.body.classList.contains('dark-theme') ? 'dark' : 'light';
-
     GraphQLPlayground.init(document.getElementById('graphql-playground'), {
         endpoint: GRAPHQL_ENDPOINT,
         settings: {
             'request.credentials': 'omit',
-            'editor.theme': initialTheme, // Set Playground theme based on app theme
+            'editor.theme': 'dark',
             'editor.reuseHeaders': true,
             'editor.fontFamily': `'Source Code Pro', 'Consolas', 'Inconsolata', 'Droid Sans Mono', 'Monaco', monospace`,
             'editor.fontSize': 14,
@@ -137,18 +131,6 @@ async function initializeGraphQLPlayground() {
     });
 }
 
-// Theme Toggle Logic
-function toggleTheme() {
-    document.body.classList.toggle('dark-theme');
-    const currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 'light';
-    // Attempt to update Playground theme if it's initialized
-    if (typeof GraphQLPlayground !== 'undefined' && GraphQLPlayground.setSettings) {
-        GraphQLPlayground.setSettings({
-            'editor.theme': currentTheme
-        });
-    }
-}
-
 loginBtn.addEventListener("click", () => {
     hideErrorMessage();
     showLoading();
@@ -162,8 +144,6 @@ logoutBtn.addEventListener("click", () => {
         postLogoutRedirectUri: msalConfig.auth.redirectUri
     });
 });
-
-themeToggleBtn.addEventListener("click", toggleTheme);
 
 // Handle redirect callback
 msalInstance.handleRedirectPromise().then(response => {
@@ -185,6 +165,7 @@ msalInstance.handleRedirectPromise().then(response => {
 });
 
 // Initial check on page load
+// This will trigger the MSAL redirect handler or show login screen
 showLoading();
 msalInstance.handleRedirectPromise().then(response => {
     if (response && response.accessToken) {

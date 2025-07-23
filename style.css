@@ -3,52 +3,6 @@ body {
     overflow: hidden; /* Prevent scrollbar during loading */
 }
 
-/* Login Screen Styling */
-.login-screen-bg {
-    background: linear-gradient(135deg, #0078d4, #005a9e); /* Fabric-like blue gradient */
-    height: 100vh;
-    width: 100vw;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-}
-
-.login-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-    max-width: 400px;
-    width: 90%;
-}
-
-.login-logo {
-    color: #0078d4; /* Fabric blue for the logo */
-}
-
-.login-card h1 {
-    font-size: 2rem;
-    color: #2d3748;
-    font-weight: 600;
-}
-
-.login-card .card-text {
-    color: #718096;
-    font-size: 1.1rem;
-}
-
-.login-card .btn-primary {
-    background: #0078d4;
-    border-color: #0078d4;
-    transition: background 0.2s, border-color 0.2s;
-}
-
-.login-card .btn-primary:hover {
-    background: #005a9e;
-    border-color: #005a9e;
-}
-
-/* Loading Overlay Styling */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -80,20 +34,3 @@ body {
     margin-bottom: 0;
     border-radius: 0;
 }
-
-/* Theme Toggle Styling */
-body.dark-theme {
-    background-color: #222;
-    color: #eee;
-}
-
-body.dark-theme .navbar {
-    background-color: #333 !important;
-}
-
-body.dark-theme .btn-secondary {
-    background-color: #555;
-    border-color: #555;
-}
-
-/* GraphQL Playground theming is handled by its own settings */
