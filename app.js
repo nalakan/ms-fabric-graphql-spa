@@ -220,6 +220,7 @@ async function initializeVoyager() {
             displayOptions: {
                 rootType: "Query",
                 sortByAlphabet: true,
+                showPanel: true,
             }
         });
     } catch (error) {
