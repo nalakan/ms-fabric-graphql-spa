@@ -23,6 +23,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="#">Fabric GraphQL SPA</a>
             <div class="d-flex">
+                <button id="themeToggleBtn" class="btn btn-secondary me-2" style="display: none;">Toggle Theme</button>
                 <button id="logoutBtn" class="btn btn-secondary" style="display: none;">Logout</button>
             </div>
         </div>
@@ -30,16 +31,12 @@
 
     <div id="errorMessage" class="alert alert-danger d-none" role="alert"></div>
 
-    <div id="loginScreen" class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h1 class="card-title">Fabric GraphQL API</h1>
-                        <p class="card-text">Please login to continue.</p>
-                        <button id="loginBtn" class="btn btn-primary">Login</button>
-                    </div>
-                </div>
+    <div id="loginScreen" class="login-screen-bg d-flex justify-content-center align-items-center">
+        <div class="login-card card text-center p-4 shadow-lg">
+            <div class="card-body">
+                <h1 class="card-title mb-3">Fabric GraphQL API</h1>
+                <p class="card-text mb-4">Access your data with powerful GraphQL queries.</p>
+                <button id="loginBtn" class="btn btn-primary btn-lg">Login with Microsoft</button>
             </div>
         </div>
     </div>
