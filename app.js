@@ -114,6 +114,7 @@ msalInstance.handleRedirectPromise().then(response => {
 function injectShowInTableButton() {
     const topBar = playgroundContainer.querySelector('.topBar');
     if (topBar) {
+        console.log("topBar element found.");
         const button = document.createElement('button');
         button.innerText = 'Show in Table';
         button.className = 'execute-button'; // Use playground's button style
