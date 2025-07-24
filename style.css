@@ -90,16 +90,91 @@ body {
     opacity: 1; /* Ensure it's not transparent */
 }
 
-.voyager-controls label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.9em;
+/* --- NEW / MODIFIED CSS RULES FOR INPUTS --- */
+/* Force display and size for range and checkbox inputs inside voyager-controls */
+.voyager-controls input[type="range"],
+.voyager-controls input[type="checkbox"] {
+    display: inline-block !important; /* Make sure they are rendered as block-level or inline-block */
+    width: auto !important; /* Let content determine width for checkbox, allow range slider to stretch */
+    height: auto !important; /* Let content determine height for checkbox */
+    min-width: 20px !important; /* Ensure minimum size to be visible */
+    min-height: 20px !important; /* Ensure minimum size to be visible */
+    margin: 0 !important; /* Remove any external margins that might collapse them */
+    padding: 0 !important; /* Remove any external padding */
+    border: none !important; /* Ensure no border hides them */
+    background: transparent !important; /* Ensure no background hides them */
+    opacity: 1 !important; /* Ensure full opacity */
+    cursor: pointer !important; /* Make sure they're clickable */
+    /* Remove default browser styling */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
 }
 
+/* Specific styling for the range input thumb and track */
 .voyager-controls input[type="range"] {
-    width: 100px;
+    width: 100px !important; /* Set a specific width for the range slider */
 }
+
+.voyager-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    background: #007bff; /* Bootstrap primary blue */
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: -5px; /* Adjust to vertically align with track */
+}
+
+.voyager-controls input[type="range"]::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    background: #007bff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.voyager-controls input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 5px;
+    background: #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.voyager-controls input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 5px;
+    background: #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+
+/* Specific styling for the checkbox */
+.voyager-controls input[type="checkbox"] {
+    width: 16px !important; /* Explicit width for checkbox */
+    height: 16px !important; /* Explicit height for checkbox */
+    border: 1px solid #ccc !important;
+    border-radius: 3px !important;
+    background-color: #fff !important;
+    vertical-align: middle; /* Align with text */
+}
+
+.voyager-controls input[type="checkbox"]:checked {
+    background-color: #007bff !important;
+    border-color: #007bff !important;
+}
+
+.voyager-controls input[type="checkbox"]:checked::before {
+    content: '✔'; /* Checkmark symbol */
+    display: block;
+    color: #fff;
+    text-align: center;
+    line-height: 16px;
+    font-size: 12px;
+}
+
 
 /* Basic table styling for readability */
 .data-table {

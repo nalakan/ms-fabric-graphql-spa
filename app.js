@@ -31,7 +31,7 @@ const GRAPHQL_ENDPOINT = 'https://bb4b4fcd2a8943f0b63391db3f3c4f9e.zbb.graphql.f
 
 // Global variables to store processed data and headers for download
 let currentTableData = [];
-let currentTableHeaders = [];
+let currentTableHeaders = []; // Stores the raw header paths like "dimension_customer.Customer"
 
 // *** Wrap the rest of your app.js logic in DOMContentLoaded ***
 document.addEventListener('DOMContentLoaded', () => {
@@ -53,12 +53,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadCsvBtn = document.getElementById("downloadCsvBtn");
     const downloadExcelBtn = document.getElementById("downloadExcelBtn");
 
-    const zoomSlider = document.getElementById("zoom-slider"); // Now safely inside
-    const skipRelayCheckbox = document.getElementById("skip-relay-checkbox"); // Now safely inside
-    const skipDeprecatedCheckbox = document.getElementById("skip-deprecated-checkbox"); // Now safely inside
+    const zoomSlider = document.getElementById("zoom-slider");
+    const skipRelayCheckbox = document.getElementById("skip-relay-checkbox");
+    const skipDeprecatedCheckbox = document.getElementById("skip-deprecated-checkbox");
 
 
-    // --- Core UI Functions --- (No changes to functions themselves)
+    // --- Core UI Functions ---
     function showLoading() { loadingOverlay.classList.add("show"); }
     function hideLoading() { loadingOverlay.classList.remove("show"); }
 
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         viewToggler.style.display = "none";
     }
 
-    // --- MSAL Authentication --- (No changes to functions themselves)
+    // --- MSAL Authentication ---
     async function getAccessToken() {
         const accounts = msalInstance.getAllAccounts();
         if (accounts.length === 0) return null;
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoginScreen();
     });
 
-    // --- GraphQL Tools Initialization --- (No changes to functions themselves)
+    // --- GraphQL Tools Initialization ---
     async function initializeGraphQLPlayground() {
         const accessToken = await getAccessToken();
         if (!accessToken) {
@@ -289,12 +289,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     skipDeprecatedCheckbox.addEventListener("change", () => {
         initializeVoyager({
-            skipRelay: skipDeprecatedCheckbox.checked,
+            skipRelay: skipRelayCheckbox.checked,
             skipDeprecated: skipDeprecatedCheckbox.checked,
         });
     });
 
-    // --- Table Data Parsing and Rendering --- (No changes to functions themselves)
+    // --- Table Data Parsing and Rendering ---
     function parseAndRenderTableData() {
         showLoading();
         hideErrorMessage();
@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableContentDiv.innerHTML = tableHTML;
     }
 
-    // --- Download Functions --- (No changes to function itself)
+    // --- Download Functions ---
     function downloadTableData(format) {
         if (currentTableData.length === 0 || currentTableHeaders.length === 0) {
             showErrorMessage("No data available to download. Please parse a JSON response first.");
