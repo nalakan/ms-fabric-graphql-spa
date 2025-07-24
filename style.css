@@ -57,96 +57,35 @@ body {
     height: 100%; /* Take full height */
 }
 
-.content-wrapper.voyager-active + #table-result-container {
-    display: none !important; /* Hide table container completely when voyager is active */
-}
 
-#table-result-container {
-    height: 40%;
+
+
+
+
+
+
+.voyager-controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 10;
     display: flex;
     flex-direction: column;
-    border-top: 2px solid #dee2e6;
-    background-color: #f8f9fa;
-    color: #212529;
-    flex-shrink: 0; /* Prevent shrinking */
+    gap: 5px;
 }
 
-.table-header {
+.voyager-controls label {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
-    background-color: #e9ecef;
-    flex-shrink: 0;
-    border-bottom: 1px solid #dee2e6;
+    gap: 5px;
+    font-size: 0.9em;
 }
 
-.table-header h2 {
-    margin: 0;
-    font-size: 1.2rem;
-    color: #212529;
+.voyager-controls input[type="range"] {
+    width: 100px;
 }
 
-#table-container {
-    padding: 15px;
-    overflow: auto;
-    flex-grow: 1;
-    background-color: #fff;
-}
-
-.alert {
-    margin-bottom: 0;
-    border-radius: 0;
-}
-
-.navbar .btn-group {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.navbar .btn-group .btn.active {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    color: white;
-}
-
-.navbar .btn-group .btn:not(.active) {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    color: white;
-}
-
-#table-container table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-#table-container th, #table-container td {
-    border: 1px solid #dee2e6;
-    padding: 8px;
-    text-align: left;
-    vertical-align: top;
-}
-
-#table-container th {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    position: sticky;
-    top: 0;
-}
-
-#table-container pre {
-    white-space: pre-wrap;
-    word-break: break-all;
-    margin: 0;
-    font-size: 0.875em;
-    background-color: #e9ecef;
-    padding: 5px;
-    border-radius: 4px;
-    color: #d63384;
-}
-
-#table-container p {
-    color: #212529;
-}

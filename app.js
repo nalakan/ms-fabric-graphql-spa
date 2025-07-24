@@ -28,9 +28,10 @@ const voyagerBtn = document.getElementById("voyagerBtn");
 const viewToggler = document.getElementById("viewToggler");
 const playgroundContainer = document.getElementById("graphql-playground");
 const voyagerContainer = document.getElementById("voyager-container");
-const tableResultContainer = document.getElementById('table-result-container');
-const generateTableBtn = document.getElementById('generate-table-btn');
-const tableContainer = document.getElementById('table-container');
+const zoomSlider = document.getElementById("zoom-slider");
+const skipRelayCheckbox = document.getElementById("skip-relay-checkbox");
+const skipDeprecatedCheckbox = document.getElementById("skip-deprecated-checkbox");
+
 const contentWrapper = document.querySelector('.content-wrapper');
 
 const GRAPHQL_ENDPOINT = 'https://bb4b4fcd2a8943f0b63391db3f3c4f9e.zbb.graphql.fabric.microsoft.com/v1/workspaces/bb4b4fcd-2a89-43f0-b633-91db3f3c4f9e/graphqlapis/69ea77b8-daf1-45b5-9200-69e4826a1a5a/graphql';
@@ -57,7 +58,7 @@ function showMainContent() {
     mainContent.style.display = "flex";
     logoutBtn.style.display = "block";
     viewToggler.style.display = "block";
-    tableResultContainer.style.display = "flex"; // Default to showing table with playground
+    
     initializeGraphQLPlayground();
 }
 
@@ -111,40 +112,7 @@ msalInstance.handleRedirectPromise().then(response => {
 
 // --- GraphQL Tools Initialization ---
 
-function injectShowInTableButton() {
-    const topBar = playgroundContainer.querySelector('.topBar');
-    if (topBar) {
-        console.log("topBar element found.");
-        const button = document.createElement('button');
-        button.innerText = 'Show in Table';
-        button.className = 'execute-button'; // Use playground's button style
-        button.style.marginLeft = '10px';
-        button.onclick = () => {
-            try {
-                const resultViewer = playgroundContainer.querySelector('.result-window .CodeMirror-code');
-                if (resultViewer) {
-                    const lines = Array.from(resultViewer.querySelectorAll('.CodeMirror-line')).map(line => line.innerText).join('\n');
-                    // Remove leading line numbers if they exist
-                    // Remove leading line numbers and any non-JSON prefix/suffix
-                    const jsonMatch = lines.match(/\{.*\}/s);
-                    const cleanJson = jsonMatch ? jsonMatch[0] : lines.replace(/^\d+\s/gm, '').trim();
-                    const jsonData = JSON.parse(cleanJson);
-                    const dataArray = findDataArray(jsonData.data);
-                    if (dataArray) {
-                        createTable(dataArray);
-                        tableResultContainer.style.display = 'flex';
-                    } else {
-                        tableContainer.innerHTML = '<p>Could not find an array of objects to display in the result.</p>';
-                    }
-                }
-            } catch (e) {
-                console.error('Error processing playground result:', e);
-                tableContainer.innerHTML = '<p class="text-danger">Could not parse JSON from the result pane.</p>';
-            }
-        };
-        topBar.appendChild(button);
-    }
-}
+
 
 async function initializeGraphQLPlayground() {
     const accessToken = await getAccessToken();
@@ -158,11 +126,7 @@ async function initializeGraphQLPlayground() {
         headers: { 'Authorization': `Bearer ${accessToken}` },
     });
 
-    // Inject the button after a short delay to ensure the playground is rendered
-    setTimeout(() => {
-        console.log("Attempting to inject 'Show in Table' button...");
-        injectShowInTableButton();
-    }, 5000);
+    
 }
 
 async function introspectionProvider(query) {
@@ -176,9 +140,20 @@ async function introspectionProvider(query) {
     return response.json();
 }
 
-async function initializeVoyager() {
+let voyagerInitialized = false;
+
+async function initializeVoyager(options = {}) {
     try {
-        GraphQLVoyager.init(voyagerContainer, { introspection: await introspectionProvider });
+        if (!voyagerInitialized) {
+            GraphQLVoyager.init(voyagerContainer, { introspection: await introspectionProvider, ...options });
+            voyagerInitialized = true;
+        } else {
+            // Assuming there's a way to update options after initialization
+            // This might require re-initializing or calling a specific update method
+            // For now, we'll re-initialize if options change, which might not be ideal for performance
+            // A better approach would be to find a Voyager API for updating settings.
+            GraphQLVoyager.init(voyagerContainer, { introspection: await introspectionProvider, ...options });
+        }
     } catch (error) {
         console.error("Failed to initialize Voyager:", error);
         showErrorMessage("Could not initialize Voyager.");
@@ -188,7 +163,6 @@ async function initializeVoyager() {
 playgroundBtn.addEventListener("click", () => {
     playgroundContainer.style.display = "block";
     voyagerContainer.style.display = "none";
-    tableResultContainer.style.display = "flex"; // Show table view
     playgroundBtn.classList.add("active");
     voyagerBtn.classList.remove("active");
     contentWrapper.classList.remove('voyager-active');
@@ -197,99 +171,42 @@ playgroundBtn.addEventListener("click", () => {
 voyagerBtn.addEventListener("click", () => {
     playgroundContainer.style.display = "none";
     voyagerContainer.style.display = "block";
-    tableResultContainer.style.display = "none"; // Hide table view
     voyagerBtn.classList.add("active");
     playgroundBtn.classList.remove("active");
     contentWrapper.classList.add('voyager-active');
-    initializeVoyager();
-});
-
-// --- Tabular Result Logic (Clipboard Method) ---
-
-function findDataArray(obj) {
-    const queue = [obj];
-    while (queue.length > 0) {
-        const current = queue.shift();
-        if (Array.isArray(current) && current.length > 0 && typeof current[0] === 'object' && current[0] !== null) {
-            return current;
-        }
-        if (current && typeof current === 'object') {
-            Object.values(current).forEach(value => queue.push(value));
-        }
-    }
-    return null;
-}
-
-function createTable(dataArray) {
-    tableContainer.innerHTML = '';
-    const table = document.createElement('table');
-    table.className = 'table table-bordered table-striped';
-    const thead = document.createElement('thead');
-    const headerRow = document.createElement('tr');
     
-    const headers = Object.keys(dataArray[0]);
-    headers.forEach(headerText => {
-        const th = document.createElement('th');
-        th.textContent = headerText;
-        headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    dataArray.forEach(rowData => {
-        const row = document.createElement('tr');
-        headers.forEach(header => {
-            const cell = document.createElement('td');
-            const cellValue = rowData[header];
-            if (typeof cellValue === 'object' && cellValue !== null) {
-                const pre = document.createElement('pre');
-                pre.textContent = JSON.stringify(cellValue, null, 2);
-                cell.appendChild(pre);
-            } else {
-                cell.textContent = cellValue;
-            }
-            row.appendChild(cell);
-        });
-        tbody.appendChild(row);
-    });
-    table.appendChild(tbody);
-    tableContainer.appendChild(table);
-}
-
-generateTableBtn.addEventListener('click', async () => {
-    try {
-        const clipboardText = await navigator.clipboard.readText();
-        if (!clipboardText) {
-            tableContainer.innerHTML = '<p>Clipboard is empty.</p>';
-            tableResultContainer.style.display = 'flex';
-            return;
-        }
-
-        const jsonData = JSON.parse(clipboardText);
-        const dataArray = findDataArray(jsonData);
-
-        if (dataArray) {
-            createTable(dataArray);
-        } else {
-            tableContainer.innerHTML = '<p>Could not find an array of objects to display in the clipboard text.</p>';
-        }
-        tableResultContainer.style.display = 'flex';
-
-    } catch (err) {
-        console.error('Failed to generate table:', err);
-        let errorMessage = 'An error occurred.';
-        if (err.name === 'NotAllowedError') {
-            errorMessage = 'Permission to read clipboard was denied. Please allow access in your browser settings or manually paste the JSON into the playground and use the "Show in Table" button.';
-        } else if (err instanceof SyntaxError) {
-            errorMessage = 'The text on the clipboard is not valid JSON.';
-        } else if (err.message.includes('readText')) {
-            errorMessage = 'Could not read from clipboard. This might be due to browser security restrictions (e.g., not running over HTTPS or missing user gesture). Try manually pasting the JSON into the playground and using the "Show in Table" button.';
-        }
-        tableContainer.innerHTML = `<p class="text-danger">${errorMessage}</p>`;
-        tableResultContainer.style.display = 'flex';
-    }
+    const voyagerOptions = {
+        skipRelay: skipRelayCheckbox.checked,
+        skipDeprecated: skipDeprecatedCheckbox.checked,
+        // Add zoom level if Voyager supports it directly in init, otherwise handle separately
+    };
+    initializeVoyager(voyagerOptions);
 });
+
+zoomSlider.addEventListener("input", (event) => {
+    // This assumes Voyager has a direct way to set zoom or we need to apply CSS transform
+    // For now, we'll just log the value. Actual implementation depends on Voyager API.
+    console.log("Voyager Zoom Level:", event.target.value);
+    // If Voyager doesn't have a direct zoom API, we might need to apply CSS transform
+    // voyagerContainer.style.transform = `scale(${event.target.value})`;
+    // voyagerContainer.style.transformOrigin = `top left`;
+});
+
+skipRelayCheckbox.addEventListener("change", () => {
+    initializeVoyager({
+        skipRelay: skipRelayCheckbox.checked,
+        skipDeprecated: skipDeprecatedCheckbox.checked,
+    });
+});
+
+skipDeprecatedCheckbox.addEventListener("change", () => {
+    initializeVoyager({
+        skipRelay: skipRelayCheckbox.checked,
+        skipDeprecated: skipDeprecatedCheckbox.checked,
+    });
+});
+
+
 
 // Initial Load
 showLoading();
