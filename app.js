@@ -31,6 +31,7 @@ const voyagerContainer = document.getElementById("voyager-container");
 const tableResultContainer = document.getElementById('table-result-container');
 const generateTableBtn = document.getElementById('generate-table-btn');
 const tableContainer = document.getElementById('table-container');
+const contentWrapper = document.querySelector('.content-wrapper');
 
 const GRAPHQL_ENDPOINT = 'https://bb4b4fcd2a8943f0b63391db3f3c4f9e.zbb.graphql.fabric.microsoft.com/v1/workspaces/bb4b4fcd-2a89-43f0-b633-91db3f3c4f9e/graphqlapis/69ea77b8-daf1-45b5-9200-69e4826a1a5a/graphql';
 
@@ -53,7 +54,7 @@ function showMainContent() {
     hideLoading();
     hideErrorMessage();
     loginScreen.style.display = "none";
-    mainContent.style.display = "block";
+    mainContent.style.display = "flex";
     logoutBtn.style.display = "block";
     viewToggler.style.display = "block";
     tableResultContainer.style.display = "flex"; // Default to showing table with playground
@@ -110,6 +111,40 @@ msalInstance.handleRedirectPromise().then(response => {
 
 // --- GraphQL Tools Initialization ---
 
+function injectShowInTableButton() {
+    const topBar = playgroundContainer.querySelector('.topBar');
+    if (topBar) {
+        const button = document.createElement('button');
+        button.innerText = 'Show in Table';
+        button.className = 'execute-button'; // Use playground's button style
+        button.style.marginLeft = '10px';
+        button.onclick = () => {
+            try {
+                const resultViewer = playgroundContainer.querySelector('.result-window .CodeMirror-code');
+                if (resultViewer) {
+                    const lines = Array.from(resultViewer.querySelectorAll('.CodeMirror-line')).map(line => line.innerText).join('\n');
+                    // Remove leading line numbers if they exist
+                    // Remove leading line numbers and any non-JSON prefix/suffix
+                    const jsonMatch = lines.match(/\{.*\}/s);
+                    const cleanJson = jsonMatch ? jsonMatch[0] : lines.replace(/^\d+\s/gm, '').trim();
+                    const jsonData = JSON.parse(cleanJson);
+                    const dataArray = findDataArray(jsonData.data);
+                    if (dataArray) {
+                        createTable(dataArray);
+                        tableResultContainer.style.display = 'flex';
+                    } else {
+                        tableContainer.innerHTML = '<p>Could not find an array of objects to display in the result.</p>';
+                    }
+                }
+            } catch (e) {
+                console.error('Error processing playground result:', e);
+                tableContainer.innerHTML = '<p class="text-danger">Could not parse JSON from the result pane.</p>';
+            }
+        };
+        topBar.appendChild(button);
+    }
+}
+
 async function initializeGraphQLPlayground() {
     const accessToken = await getAccessToken();
     if (!accessToken) {
@@ -121,6 +156,9 @@ async function initializeGraphQLPlayground() {
         settings: { 'editor.theme': 'dark', 'editor.reuseHeaders': true },
         headers: { 'Authorization': `Bearer ${accessToken}` },
     });
+
+    // Inject the button after a short delay to ensure the playground is rendered
+    setTimeout(injectShowInTableButton, 2000);
 }
 
 async function introspectionProvider(query) {
@@ -149,14 +187,16 @@ playgroundBtn.addEventListener("click", () => {
     tableResultContainer.style.display = "flex"; // Show table view
     playgroundBtn.classList.add("active");
     voyagerBtn.classList.remove("active");
+    contentWrapper.classList.remove('voyager-active');
 });
 
 voyagerBtn.addEventListener("click", () => {
     playgroundContainer.style.display = "none";
     voyagerContainer.style.display = "block";
-    tableResultContainer.style.display = "flex"; // Show table view
+    tableResultContainer.style.display = "none"; // Hide table view
     voyagerBtn.classList.add("active");
     playgroundBtn.classList.remove("active");
+    contentWrapper.classList.add('voyager-active');
     initializeVoyager();
 });
 
@@ -236,9 +276,11 @@ generateTableBtn.addEventListener('click', async () => {
         console.error('Failed to generate table:', err);
         let errorMessage = 'An error occurred.';
         if (err.name === 'NotAllowedError') {
-            errorMessage = 'Permission to read clipboard was denied. Please allow access in your browser.';
+            errorMessage = 'Permission to read clipboard was denied. Please allow access in your browser settings or manually paste the JSON into the playground and use the "Show in Table" button.';
         } else if (err instanceof SyntaxError) {
             errorMessage = 'The text on the clipboard is not valid JSON.';
+        } else if (err.message.includes('readText')) {
+            errorMessage = 'Could not read from clipboard. This might be due to browser security restrictions (e.g., not running over HTTPS or missing user gesture). Try manually pasting the JSON into the playground and using the "Show in Table" button.';
         }
         tableContainer.innerHTML = `<p class="text-danger">${errorMessage}</p>`;
         tableResultContainer.style.display = 'flex';

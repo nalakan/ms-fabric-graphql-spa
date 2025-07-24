@@ -1,6 +1,6 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow: hidden; /* Prevent scrollbar during loading */
+    /* overflow: hidden; */ /* Removed to allow scrolling for Voyager */
 }
 
 .loading-overlay {
@@ -9,11 +9,11 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+    background: rgba(255, 255, 255, 0.8);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1050; /* Above Bootstrap modals */
+    z-index: 1050;
     transition: opacity 0.3s ease-in-out;
     opacity: 0;
     visibility: hidden;
@@ -24,31 +24,51 @@ body {
     visibility: visible;
 }
 
-/* Adjust main content height to account for navbar and potential error message */
-/* Basic Layout */
 #mainContent {
     width: 100%;
     height: calc(100vh - 56px); /* Full height minus navbar */
+    display: flex;
+    flex-direction: column;
 }
 
 .content-wrapper {
-    height: 60%; /* Playground takes 60% of the height */
+    flex-grow: 1;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Ensure content doesn't overflow */
 }
 
 .playground-view, .voyager-view {
     height: 100%;
     width: 100%;
+    flex-grow: 1;
+    position: relative; /* Important for Voyager's internal positioning */
+    overflow: hidden; /* Important for Voyager's internal scrolling/zoom */
 }
 
-/* Table container is now always visible with the main content */
+/* When voyager is active, it should take the full height and hide the table container */
+.content-wrapper.voyager-active .playground-view {
+    display: none; /* Hide playground when voyager is active */
+}
+
+.content-wrapper.voyager-active .voyager-view {
+    display: block; /* Ensure voyager is visible */
+    height: 100%; /* Take full height */
+}
+
+.content-wrapper.voyager-active + #table-result-container {
+    display: none !important; /* Hide table container completely when voyager is active */
+}
+
 #table-result-container {
-    height: 40%; /* Table area takes 40% */
+    height: 40%;
     display: flex;
     flex-direction: column;
     border-top: 2px solid #dee2e6;
     background-color: #f8f9fa;
-    color: #212529; /* Dark text */
+    color: #212529;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .table-header {
@@ -71,34 +91,7 @@ body {
     padding: 15px;
     overflow: auto;
     flex-grow: 1;
-    background-color: #fff; /* Pure white background for the table area */
-}
-
-/* --- Generic Styles --- */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow: hidden;
-}
-
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1050;
-    transition: opacity 0.3s ease-in-out;
-    opacity: 0;
-    visibility: hidden;
-}
-
-.loading-overlay.show {
-    opacity: 1;
-    visibility: visible;
+    background-color: #fff;
 }
 
 .alert {
@@ -151,7 +144,7 @@ body {
     background-color: #e9ecef;
     padding: 5px;
     border-radius: 4px;
-    color: #d63384; /* Bootstrap pink for contrast */
+    color: #d63384;
 }
 
 #table-container p {
