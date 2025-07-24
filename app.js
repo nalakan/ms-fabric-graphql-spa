@@ -158,7 +158,10 @@ async function initializeGraphQLPlayground() {
     });
 
     // Inject the button after a short delay to ensure the playground is rendered
-    setTimeout(injectShowInTableButton, 2000);
+    setTimeout(() => {
+        console.log("Attempting to inject 'Show in Table' button...");
+        injectShowInTableButton();
+    }, 5000);
 }
 
 async function introspectionProvider(query) {
