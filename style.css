@@ -71,6 +71,7 @@ body {
     height: 100%; /* Take full height */
 }
 
+/* Voyager Controls Styling - Ensure these are always visible when voyager-view is displayed */
 .voyager-controls {
     position: absolute;
     top: 10px;
@@ -79,10 +80,13 @@ body {
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
+    z-index: 10; /* Ensure it's above the Voyager canvas */
+    display: flex; /* Make sure it's flex to arrange items */
+    flex-direction: column; /* Stack controls vertically */
     gap: 5px;
+    /* Explicitly make sure it's not hidden by its parent if that's the issue */
+    visibility: visible;
+    opacity: 1;
 }
 
 .voyager-controls label {
