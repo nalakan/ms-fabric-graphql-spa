@@ -34,9 +34,9 @@ const tableContainer = document.getElementById("table-view");
 const jsonResponseInput = document.getElementById("jsonResponseInput");
 const parseAndShowTableBtn = document.getElementById("parseAndShowTableBtn");
 const tableContentDiv = document.getElementById("tableContent");
-const downloadButtonsDiv = document.getElementById("downloadButtons"); // NEW: Download buttons container
-const downloadCsvBtn = document.getElementById("downloadCsvBtn");     // NEW: Download CSV button
-const downloadExcelBtn = document.getElementById("downloadExcelBtn"); // NEW: Download Excel button
+const downloadButtonsDiv = document.getElementById("downloadButtons");
+const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+const downloadExcelBtn = document.getElementById("downloadExcelBtn");
 
 const contentWrapper = document.querySelector('.content-wrapper');
 
@@ -136,57 +136,93 @@ async function initializeGraphQLPlayground() {
     });
 }
 
-// Fixed for Voyager blank page: Ensure introspectionProvider explicitly handles errors
+// *** CRITICAL SECTION FOR VOYAGER DEBUGGING ***
 async function introspectionProvider(query) {
     const accessToken = await getAccessToken();
     if (!accessToken) {
-        console.error("introspectionProvider: No access token available.");
-        // This will be caught by initializeVoyager, but good to log here too
-        throw new Error("No access token for introspection.");
+        console.error("Voyager Introspection: No access token available. Cannot perform introspection.");
+        showErrorMessage("Voyager requires an access token for schema introspection. Please log in.");
+        throw new Error("No access token for introspection."); // Throw to prevent Voyager from trying to render with invalid data
     }
+
     try {
+        console.log("Voyager Introspection: Sending introspection query to:", GRAPHQL_ENDPOINT);
+        console.log("Voyager Introspection: Query being sent:", query);
+
         const response = await fetch(GRAPHQL_ENDPOINT, {
             method: 'post',
-            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
             body: JSON.stringify({ query: query }),
         });
+
         if (!response.ok) {
             const errorBody = await response.text();
-            console.error(`introspectionProvider: Network response not ok: ${response.status} ${response.statusText}`, errorBody);
+            console.error(`Voyager Introspection: Network response not OK: ${response.status} ${response.statusText}`, errorBody);
+            showErrorMessage(`Voyager: Failed to fetch schema (${response.status} ${response.statusText}). Check network/console.`);
             throw new Error(`Failed to fetch schema: ${response.status} ${response.statusText}`);
         }
+
         const jsonResponse = await response.json();
+        console.log("Voyager Introspection: Received JSON response:", jsonResponse);
+
         if (jsonResponse.errors) {
-            console.error("introspectionProvider: GraphQL errors in schema response:", jsonResponse.errors);
+            console.error("Voyager Introspection: GraphQL errors in schema response:", jsonResponse.errors);
+            showErrorMessage(`Voyager: GraphQL errors fetching schema: ${jsonResponse.errors.map(e => e.message).join(", ")}. Check console.`);
             throw new Error(`GraphQL errors fetching schema: ${jsonResponse.errors.map(e => e.message).join(", ")}`);
         }
-        return jsonResponse;
+
+        // GraphQL Voyager expects the 'data' object directly from the introspection query result.
+        // The introspection query itself should return { data: { __schema: ... } }
+        if (!jsonResponse.data || !jsonResponse.data.__schema) {
+            console.error("Voyager Introspection: Response does not contain a valid introspection schema.", jsonResponse);
+            showErrorMessage("Voyager: Invalid schema response format. Missing '__schema' field.");
+            throw new Error("Invalid schema response format from introspection.");
+        }
+
+        console.log("Voyager Introspection: Schema fetched successfully!");
+        return jsonResponse; // Voyager expects the full JSON response, not just jsonResponse.data
     } catch (error) {
-        console.error("introspectionProvider: Error during fetch or parsing:", error);
-        // Rethrow the error so initializeVoyager can catch and display
-        throw error;
+        console.error("Voyager Introspection: Error during fetch or parsing:", error);
+        showErrorMessage(`Voyager: An error occurred during schema introspection: ${error.message}.`);
+        throw error; // Re-throw the error so initializeVoyager can catch it
     }
 }
 
-let voyagerInitialized = false;
+let voyagerInitialized = false; // Keep track of initialization state
 
 async function initializeVoyager(options = {}) {
+    // Ensure voyagerContainer is visible and has dimensions BEFORE initializing
+    // This is crucial for libraries that measure their container size on init.
+    voyagerContainer.style.display = 'block'; // Ensure it's rendered and visible
+
+    if (voyagerInitialized) {
+        console.log("Voyager: Re-initializing with new options.");
+    } else {
+        console.log("Voyager: Initializing for the first time.");
+    }
+
     try {
-        if (!voyagerInitialized) {
-            // Ensure voyagerContainer is visible and has dimensions before initializing
-            voyagerContainer.style.display = 'block'; // Ensure it's rendered to get dimensions
-            GraphQLVoyager.init(voyagerContainer, { introspection: introspectionProvider, ...options });
-            voyagerInitialized = true;
-        } else {
-            // If already initialized, you might need to re-render or update if options change
-            // For Voyager, often re-initializing is the simplest path if it doesn't offer update APIs
-            GraphQLVoyager.init(voyagerContainer, { introspection: introspectionProvider, ...options });
-        }
+        // Pass introspectionProvider directly. Voyager will call it internally.
+        GraphQLVoyager.init(voyagerContainer, { introspection: introspectionProvider, ...options });
+        voyagerInitialized = true;
+        console.log("Voyager: Initialization attempt complete.");
     } catch (error) {
-        console.error("Failed to initialize Voyager:", error);
-        showErrorMessage("Could not initialize Voyager. Check console for details.");
+        // Error from introspectionProvider will bubble up here
+        console.error("Voyager: Final initialization failed (caught in initializeVoyager):", error);
+        // showErrorMessage is already called in introspectionProvider for token/network issues
+        // If it's a render-specific issue, an error message can be shown here.
+        voyagerContainer.innerHTML = `<div style="text-align:center; padding: 20px;">
+                                        <h3>Could not render schema.</h3>
+                                        <p>Check your network, access token, and browser console for detailed errors.</p>
+                                        <p>Error: ${error.message}</p>
+                                      </div>`;
     }
 }
+
 
 // --- View Toggler Event Listeners ---
 playgroundBtn.addEventListener("click", () => {
@@ -311,21 +347,10 @@ function parseAndRenderTableData() {
                 } else if (Array.isArray(potentialData)) { // If it's a direct array (e.g., from a top-level list query without 'items')
                     dataToRender = potentialData;
                     break;
-                } else if (typeof potentialData === 'object' && potentialData !== null) {
-                    // If it's a single object (e.g., a query for a single item by ID)
-                    // We can wrap it in an array to make it tabular, or decide to skip if it's not meant for tabular display
-                    // For now, if no array found, and there's one object, we'll try to treat it as a single row.
-                    let allAreObjects = true;
-                    for (const subKey in potentialData) {
-                        if (potentialData.hasOwnProperty(subKey) && ! (typeof potentialData[subKey] === 'object' && potentialData[subKey] !== null)) {
-                            allAreObjects = false; // Not a nested object structure, might be a flat object
-                            break;
-                        }
-                    }
-                    if (allAreObjects && Object.keys(potentialData).length > 0) { // If it's a single flat object, treat as one row
-                         dataToRender = [potentialData];
-                         break;
-                    }
+                } else if (typeof potentialData === 'object' && potentialData !== null && Object.keys(potentialData).length > 0) {
+                    // If it's a single non-empty object, wrap it in an array to treat as a single row
+                    dataToRender = [potentialData];
+                    break;
                 }
             }
         }
@@ -357,7 +382,7 @@ function getHeaders(data, prefix = '') {
     const headers = new Set();
     if (!data || data.length === 0) return [];
 
-    // If data is a single object (e.g., query for one item), wrap it in an array
+    // If data is a single object (e.g., query for one item), wrap it in an array for consistent processing
     const dataArray = Array.isArray(data) ? data : [data];
 
     dataArray.forEach(item => {
@@ -389,7 +414,7 @@ function getNestedValue(obj, path) {
         current = current[parts[i]];
     }
     // Special formatting for DateTimes
-    if (typeof current === 'string' && current.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|-\d{2}:\d{2})?$/)) { // Handle Z and timezone offsets
+    if (typeof current === 'string' && current.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|-\d{2}:\d{2})?$/)) {
         try {
             const date = new Date(current);
             if (!isNaN(date.getTime())) { // Check if date is valid
@@ -446,7 +471,7 @@ function renderTable(data) {
     tableContentDiv.innerHTML = tableHTML;
 }
 
-// --- NEW: Download Functions ---
+// --- Download Functions ---
 
 function downloadTableData(format) {
     if (currentTableData.length === 0 || currentTableHeaders.length === 0) {
