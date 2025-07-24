@@ -25,14 +25,15 @@ const loadingOverlay = document.getElementById("loadingOverlay");
 const errorMessageDiv = document.getElementById("errorMessage");
 const playgroundBtn = document.getElementById("playgroundBtn");
 const voyagerBtn = document.getElementById("voyagerBtn");
-const tableViewBtn = document.getElementById("tableViewBtn"); // NEW: Table View Button
+const tableViewBtn = document.getElementById("tableViewBtn");
 const viewToggler = document.getElementById("viewToggler");
 const playgroundContainer = document.getElementById("graphql-playground");
 const voyagerContainer = document.getElementById("voyager-container");
-const tableContainer = document.getElementById("table-view"); // NEW: Table View Container
-const zoomSlider = document.getElementById("zoom-slider");
-const skipRelayCheckbox = document.getElementById("skip-relay-checkbox");
-const skipDeprecatedCheckbox = document.getElementById("skip-deprecated-checkbox");
+const tableContainer = document.getElementById("table-view");
+
+const jsonResponseInput = document.getElementById("jsonResponseInput"); // MODIFIED: JSON response textarea
+const parseAndShowTableBtn = document.getElementById("parseAndShowTableBtn"); // MODIFIED: Parse button
+const tableContentDiv = document.getElementById("tableContent"); // Div to render table into
 
 const contentWrapper = document.querySelector('.content-wrapper');
 
@@ -61,9 +62,8 @@ function showMainContent() {
     logoutBtn.style.display = "block";
     viewToggler.style.display = "block";
 
-    // Initialize Playground on login/redirect to ensure it's always ready
     initializeGraphQLPlayground();
-    // Default to playground view
+    // Default to playground view on login
     playgroundBtn.click();
 }
 
@@ -86,7 +86,6 @@ async function getAccessToken() {
         return tokenResponse.accessToken;
     } catch (error) {
         console.error("Silent token acquisition failed, acquiring token interactively:", error);
-        // Force interactive login if silent fails (e.g., token expired or no valid session)
         msalInstance.loginRedirect(loginRequest);
         return null;
     }
@@ -150,8 +149,6 @@ async function initializeVoyager(options = {}) {
             GraphQLVoyager.init(voyagerContainer, { introspection: introspectionProvider, ...options });
             voyagerInitialized = true;
         } else {
-            // For simplicity, re-initialize if options change.
-            // A more advanced approach would update Voyager's settings if its API supports it.
             GraphQLVoyager.init(voyagerContainer, { introspection: introspectionProvider, ...options });
         }
     } catch (error) {
@@ -164,22 +161,22 @@ async function initializeVoyager(options = {}) {
 playgroundBtn.addEventListener("click", () => {
     playgroundContainer.style.display = "block";
     voyagerContainer.style.display = "none";
-    tableContainer.style.display = "none"; // Hide table view
+    tableContainer.style.display = "none";
     playgroundBtn.classList.add("active");
     voyagerBtn.classList.remove("active");
-    tableViewBtn.classList.remove("active"); // Remove active from table button
-    contentWrapper.classList.remove('voyager-active', 'table-active'); // Remove all active classes
+    tableViewBtn.classList.remove("active");
+    contentWrapper.classList.remove('voyager-active', 'table-active');
 });
 
 voyagerBtn.addEventListener("click", () => {
     playgroundContainer.style.display = "none";
     voyagerContainer.style.display = "block";
-    tableContainer.style.display = "none"; // Hide table view
+    tableContainer.style.display = "none";
     voyagerBtn.classList.add("active");
     playgroundBtn.classList.remove("active");
-    tableViewBtn.classList.remove("active"); // Remove active from table button
-    contentWrapper.classList.remove('table-active'); // Remove table active class
-    contentWrapper.classList.add('voyager-active'); // Add voyager active class
+    tableViewBtn.classList.remove("active");
+    contentWrapper.classList.remove('table-active');
+    contentWrapper.classList.add('voyager-active');
 
     const voyagerOptions = {
         skipRelay: skipRelayCheckbox.checked,
@@ -188,25 +185,26 @@ voyagerBtn.addEventListener("click", () => {
     initializeVoyager(voyagerOptions);
 });
 
-tableViewBtn.addEventListener("click", async () => { // NEW: Table View Button Click
+tableViewBtn.addEventListener("click", () => {
     playgroundContainer.style.display = "none";
     voyagerContainer.style.display = "none";
-    tableContainer.style.display = "block"; // Show table view
+    tableContainer.style.display = "block";
     tableViewBtn.classList.add("active");
     playgroundBtn.classList.remove("active");
     voyagerBtn.classList.remove("active");
-    contentWrapper.classList.remove('voyager-active'); // Remove voyager active class
-    contentWrapper.classList.add('table-active'); // Add table active class
+    contentWrapper.classList.remove('voyager-active');
+    contentWrapper.classList.add('table-active');
 
-    await fetchAndRenderTableData(); // Fetch and render data when switching to table view
+    // Clear previous table content when switching to this view
+    tableContentDiv.innerHTML = '<p class="text-muted">Execute a query in the \'Playground\' tab, copy the JSON response, and paste it above to see data in a table.</p>';
 });
+
+// NEW: Event listener for parsing the user-pasted JSON response
+parseAndShowTableBtn.addEventListener("click", parseAndRenderTableData);
+
 
 // --- Voyager Controls ---
 zoomSlider.addEventListener("input", (event) => {
-    // This part depends on how GraphQL Voyager implements zoom.
-    // As per the original code, it just logs. If direct CSS transform is desired:
-    // voyagerContainer.style.transform = `scale(${event.target.value})`;
-    // voyagerContainer.style.transformOrigin = `top left`;
     console.log("Voyager Zoom Level:", event.target.value);
 });
 
@@ -224,126 +222,163 @@ skipDeprecatedCheckbox.addEventListener("change", () => {
     });
 });
 
-// --- NEW: Table Data Fetching and Rendering ---
+// --- NEW: Table Data Parsing and Rendering ---
 
-async function fetchAndRenderTableData() {
+function parseAndRenderTableData() {
     showLoading();
     hideErrorMessage();
-    const accessToken = await getAccessToken();
+    tableContentDiv.innerHTML = ''; // Clear previous table data
 
-    if (!accessToken) {
-        showErrorMessage("No access token available to fetch table data. Please log in.");
+    const jsonString = jsonResponseInput.value.trim();
+
+    if (!jsonString) {
+        showErrorMessage("Please paste a JSON response in the text area.");
         hideLoading();
         return;
     }
 
-    // Define the GraphQL query to fetch sales and customer data
-    const query = `
-        query {
-            fact_sales(first: 50) { # Limiting to 50 for initial display, adjust as needed
-                items {
-                    SaleKey
-                    InvoiceDateKey
-                    Quantity
-                    UnitPrice
-                    TotalIncludingTax
-                    Profit
-                    dimension_customer {
-                        Customer
-                        Category
-                        PostalCode
-                    }
-                    dimension_stock_item { # Also pulling stock item info for more robust table
-                        StockItem
-                        Brand
-                    }
-                }
-            }
-        }
-    `;
-
     try {
-        const response = await fetch(GRAPHQL_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({ query: query })
-        });
+        const parsedResponse = JSON.parse(jsonString);
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`GraphQL network response was not ok: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
-
-        if (result.errors) {
-            console.error("GraphQL Errors:", result.errors);
-            showErrorMessage(`GraphQL Errors: ${result.errors.map(e => e.message).join(", ")}`);
-            tableContainer.innerHTML = `<p class="text-danger">Failed to load data due to GraphQL errors.</p>`;
+        if (parsedResponse.errors) {
+            console.error("GraphQL Errors in pasted response:", parsedResponse.errors);
+            showErrorMessage(`GraphQL Errors in pasted response: ${parsedResponse.errors.map(e => e.message).join(", ")}`);
+            tableContentDiv.innerHTML = `<p class="text-danger">Pasted JSON contains GraphQL errors.</p>`;
             return;
         }
 
-        const sales = result.data.fact_sales.items;
-        renderTable(sales);
+        if (!parsedResponse.data) {
+            showErrorMessage("Pasted JSON does not contain a 'data' field. Please ensure it's a valid GraphQL response.");
+            tableContentDiv.innerHTML = `<p class="text-danger">Invalid GraphQL response structure.</p>`;
+            return;
+        }
+
+        // --- Logic to extract data from the 'data' object ---
+        let dataToRender = null;
+        // Assuming the top-level field in 'data' typically holds the list (e.g., fact_sales, dimension_customers)
+        // We'll try to find the first array under 'data' and its 'items' if it's a connection type.
+        for (const key in parsedResponse.data) {
+            if (parsedResponse.data.hasOwnProperty(key)) {
+                const potentialConnection = parsedResponse.data[key];
+                if (potentialConnection && Array.isArray(potentialConnection.items)) {
+                    dataToRender = potentialConnection.items;
+                    break; // Found the data, stop searching
+                } else if (Array.isArray(potentialConnection)) { // If it's a direct array (e.g., non-paginated list)
+                    dataToRender = potentialConnection;
+                    break;
+                } else if (typeof potentialConnection === 'object' && potentialConnection !== null) {
+                    // Handle cases where 'data' might directly return a single object, e.g., for a single item query
+                    // For tabular display, we primarily expect arrays of objects.
+                    // If it's a single object, we might wrap it in an array or skip.
+                    // For now, we'll just handle connections and direct arrays.
+                }
+            }
+        }
+
+        if (!dataToRender || dataToRender.length === 0) {
+            showErrorMessage("Could not find tabular data (e.g., an 'items' array within a connection, or a direct array) in the pasted JSON. Please check your query results.");
+            tableContentDiv.innerHTML = `<p class="text-info">No tabular data found in the pasted JSON response.</p>`;
+            return;
+        }
+
+        renderTable(dataToRender);
 
     } catch (error) {
-        console.error("Error fetching table data:", error);
-        showErrorMessage(`Error fetching table data: ${error.message}`);
-        tableContainer.innerHTML = `<p class="text-danger">An error occurred while fetching data.</p>`;
+        console.error("Error parsing JSON or rendering table:", error);
+        showErrorMessage(`Error parsing JSON: ${error.message}. Please ensure it's valid JSON.`);
+        tableContentDiv.innerHTML = `<p class="text-danger">An error occurred while parsing the JSON.</p>`;
     } finally {
         hideLoading();
     }
 }
 
+// Function to recursively get all headers (keys) from nested objects
+function getHeaders(data, prefix = '') {
+    const headers = new Set();
+    if (!data || data.length === 0) return [];
+
+    data.forEach(item => {
+        for (const key in item) {
+            if (item.hasOwnProperty(key)) {
+                if (typeof item[key] === 'object' && item[key] !== null && !Array.isArray(item[key])) {
+                    // Recursively get headers for nested objects
+                    getHeaders([item[key]], `${prefix}${key}.`).forEach(nestedHeader => headers.add(nestedHeader));
+                } else if (Array.isArray(item[key])) {
+                    // For arrays, we might need to decide how to handle them.
+                    // For simplicity in a basic table, we'll usually ignore complex arrays
+                    // or just represent them as "Array" or "..."
+                    headers.add(`${prefix}${key}`); // Just add the array field name
+                }
+                else {
+                    headers.add(`${prefix}${key}`);
+                }
+            }
+        }
+    });
+    return Array.from(headers);
+}
+
+// Function to recursively get a value for a header path
+function getNestedValue(obj, path) {
+    const parts = path.split('.');
+    let current = obj;
+    for (let i = 0; i < parts.length; i++) {
+        if (current === null || typeof current !== 'object' || !current.hasOwnProperty(parts[i])) {
+            return ''; // Return empty string if path doesn't exist
+        }
+        current = current[parts[i]];
+    }
+    // Special formatting for DateTimes if they are common
+    if (typeof current === 'string' && current.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)) {
+        return new Date(current).toLocaleDateString() + ' ' + new Date(current).toLocaleTimeString();
+    }
+    // Handle null/undefined display
+    if (current === null || current === undefined) {
+        return '';
+    }
+    // Handle numbers with fixed decimals (e.g., currency)
+    if (typeof current === 'number' && (path.includes('Price') || path.includes('Tax') || path.includes('Profit'))) {
+        return current.toFixed(2);
+    }
+    return current.toString(); // Convert other values to string
+}
+
+
 function renderTable(data) {
     if (!data || data.length === 0) {
-        tableContainer.innerHTML = '<p class="text-info">No sales data available.</p>';
+        tableContentDiv.innerHTML = '<p class="text-info">No data items found in the response to render a table.</p>';
         return;
     }
 
-    // Dynamically create table headers based on the first item's keys, including nested
-    let headers = [
-        "Sale Key", "Invoice Date", "Quantity", "Unit Price",
-        "Total Including Tax", "Profit", "Customer Name", "Customer Category",
-        "Customer Postal Code", "Stock Item", "Brand"
-    ];
+    // Get dynamic headers from the data structure
+    const headers = getHeaders(data);
+    if (headers.length === 0) {
+        tableContentDiv.innerHTML = '<p class="text-warning">Could not determine table headers from the data structure.</p>';
+        return;
+    }
 
     let tableHTML = `<table class="table table-striped table-hover data-table"><thead><tr>`;
     headers.forEach(header => {
-        tableHTML += `<th>${header}</th>`;
+        // Make headers more readable (e.g., "dimension_customer.Customer" -> "Customer")
+        const displayHeader = header.includes('.') ? header.split('.').pop().replace(/([A-Z])/g, ' $1').trim() : header.replace(/([A-Z])/g, ' $1').trim();
+        tableHTML += `<th>${displayHeader}</th>`;
     });
     tableHTML += `</tr></thead><tbody>`;
 
     // Populate table rows
     data.forEach(item => {
-        const customer = item.dimension_customer || {}; // Handle potential missing customer
-        const stockItem = item.dimension_stock_item || {}; // Handle potential missing stock item
-
         tableHTML += `<tr>`;
-        tableHTML += `<td>${item.SaleKey || ''}</td>`;
-        tableHTML += `<td>${item.InvoiceDateKey ? new Date(item.InvoiceDateKey).toLocaleDateString() : ''}</td>`;
-        tableHTML += `<td>${item.Quantity || ''}</td>`;
-        tableHTML += `<td>${item.UnitPrice !== null ? item.UnitPrice.toFixed(2) : ''}</td>`;
-        tableHTML += `<td>${item.TotalIncludingTax !== null ? item.TotalIncludingTax.toFixed(2) : ''}</td>`;
-        tableHTML += `<td>${item.Profit !== null ? item.Profit.toFixed(2) : ''}</td>`;
-        tableHTML += `<td>${customer.Customer || ''}</td>`;
-        tableHTML += `<td>${customer.Category || ''}</td>`;
-        tableHTML += `<td>${customer.PostalCode || ''}</td>`;
-        tableHTML += `<td>${stockItem.StockItem || ''}</td>`;
-        tableHTML += `<td>${stockItem.Brand || ''}</td>`;
+        headers.forEach(headerPath => {
+            tableHTML += `<td>${getNestedValue(item, headerPath)}</td>`;
+        });
         tableHTML += `</tr>`;
     });
 
     tableHTML += `</tbody></table>`;
-    tableContainer.innerHTML = tableHTML;
+    tableContentDiv.innerHTML = tableHTML;
 }
 
 
 // Initial Load
 showLoading();
-// The msalInstance.handleRedirectPromise() will eventually call showMainContent() or showLoginScreen()
-// It handles the initial authentication flow after redirect.
 msalInstance.handleRedirectPromise().catch(err => console.error(err));
