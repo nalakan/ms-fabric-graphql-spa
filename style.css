@@ -39,17 +39,19 @@ body {
     overflow: hidden; /* Ensure content doesn't overflow */
 }
 
-.playground-view, .voyager-view {
+.playground-view, .voyager-view, .table-view { /* Added .table-view here */
     height: 100%;
     width: 100%;
     flex-grow: 1;
-    position: relative; /* Important for Voyager's internal positioning */
-    overflow: hidden; /* Important for Voyager's internal scrolling/zoom */
+    position: relative; /* Important for positioning children */
+    overflow: auto; /* Allow scrolling for content that overflows, especially for tables */
+    padding: 15px; /* Add some padding for the table view */
 }
 
 /* When voyager is active, it should take the full height and hide the table container */
-.content-wrapper.voyager-active .playground-view {
-    display: none; /* Hide playground when voyager is active */
+.content-wrapper.voyager-active .playground-view,
+.content-wrapper.voyager-active .table-view { /* Hide playground and table when voyager is active */
+    display: none;
 }
 
 .content-wrapper.voyager-active .voyager-view {
@@ -57,11 +59,16 @@ body {
     height: 100%; /* Take full height */
 }
 
+/* Add styles for table-view active state */
+.content-wrapper.table-active .playground-view,
+.content-wrapper.table-active .voyager-view {
+    display: none; /* Hide playground and voyager when table is active */
+}
 
-
-
-
-
+.content-wrapper.table-active .table-view {
+    display: block; /* Ensure table view is visible */
+    height: 100%; /* Take full height */
+}
 
 
 .voyager-controls {
@@ -89,3 +96,30 @@ body {
     width: 100px;
 }
 
+/* Basic table styling for readability */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.9em;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.data-table th {
+    background-color: #f2f2f2;
+    color: #333;
+    font-weight: bold;
+}
+
+.data-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.data-table tr:hover {
+    background-color: #e9e9e9;
+}
