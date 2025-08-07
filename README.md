@@ -1,4 +1,4 @@
-# Fabric GraphQL SPA with MSAL.js and GraphQL Playground
+# Fabric GraphQL SPA with GraphQL Playground
 
 This project demonstrates a Single-Page Application (SPA) designed to interact with a Microsoft Fabric GraphQL API. It leverages Microsoft Authentication Library for JavaScript (MSAL.js) for authentication against Azure Active Directory (AAD) and integrates GraphQL Playground for an interactive GraphQL query experience.
 
