@@ -1,4 +1,5 @@
 # Fabric GraphQL SPA with GraphQL Playground
+https://nalakan.github.io/ms-fabric-graphql-spa/
 
 This project demonstrates a Single-Page Application (SPA) designed to interact with a Microsoft Fabric GraphQL API. It leverages Microsoft Authentication Library for JavaScript (MSAL.js) for authentication against Azure Active Directory (AAD) and integrates GraphQL Playground for an interactive GraphQL query experience.
 
@@ -94,7 +95,7 @@ This is the most critical step for authentication to work on GitHub Pages.
 
 ## Usage
 
-1.  Access the deployed application (e.g., `https://nalakan.github.io/-fabric-graphql-spa/`).
+1.  Access the deployed application (e.g., `https://nalakan.github.io/ms-fabric-graphql-spa/`).
 2.  Click the "Login" button to authenticate via Azure AD.
 3.  Upon successful login, the GraphQL Playground will load.
 4.  Use the Playground to explore the Fabric GraphQL API schema (via the "Schema" tab on the right) and execute queries.
